@@ -225,14 +225,35 @@
                         
                         <div class="space-y-3">
                             @if($domain->status === 'draft')
-                                <form method="POST" action="{{ route('domains.publish', $domain) }}" class="w-full">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+                                @if(!$domain->domain_verified)
+                                    <a href="{{ route('domains.verification', $domain) }}" class="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center">
                                         <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                                         </svg>
-                                        Publish Domain
+                                        Verify Domain First
+                                    </a>
+                                @else
+                                    <form method="POST" action="{{ route('domains.publish', $domain) }}" class="w-full">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+                                            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            Publish Domain
+                                        </button>
+                                    </form>
+                                @endif
+                                
+                                <!-- Delete Draft Button -->
+                                <form method="POST" action="{{ route('domains.destroy', $domain) }}" class="w-full" onsubmit="return confirm('⚠️ WARNING: This will permanently delete your domain listing.\n\nThis action cannot be undone and will remove:\n• All domain information\n• Any associated data\n\nAre you absolutely sure you want to delete this domain?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
+                                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                        Delete Draft
                                     </button>
                                 </form>
                             @endif
@@ -460,6 +481,29 @@
                 </div>
             @endauth
 
+            <!-- Watchlist Button -->
+            @auth
+                @if($domain->user_id !== auth()->id())
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 text-center hover:shadow-2xl transition-all duration-300">
+                        <div class="mb-4">
+                            <svg class="w-12 h-12 mx-auto text-red-500 dark:text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Add to Watchlist</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Get notified about price changes and updates</p>
+                        </div>
+                        <button id="watchlist-btn" 
+                                onclick="toggleWatchlist({{ $domain->id }})"
+                                class="w-full inline-flex items-center justify-center px-6 py-3 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                            <span id="watchlist-text">Add to Watchlist</span>
+                        </button>
+                    </div>
+                @endif
+            @endauth
+
             <!-- Browse More Domains -->
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 text-center hover:shadow-2xl transition-all duration-300">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Looking for More?</h3>
@@ -474,4 +518,92 @@
         </div>
     </div>
 </div>
+
+@auth
+<script>
+// Check if domain is in watchlist on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkWatchlistStatus({{ $domain->id }});
+});
+
+function checkWatchlistStatus(domainId) {
+    fetch(`/watchlist/check?domain_id=${domainId}`)
+        .then(response => response.json())
+        .then(data => {
+            updateWatchlistButton(data.is_watching);
+        })
+        .catch(error => {
+            console.error('Error checking watchlist status:', error);
+        });
+}
+
+function toggleWatchlist(domainId) {
+    const button = document.getElementById('watchlist-btn');
+    const text = document.getElementById('watchlist-text');
+    
+    // Disable button during request
+    button.disabled = true;
+    text.textContent = 'Loading...';
+    
+    fetch('/watchlist/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            domain_id: domainId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateWatchlistButton(data.is_watching);
+            // Show success message
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.message || 'Failed to update watchlist', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Failed to update watchlist', 'error');
+    })
+    .finally(() => {
+        button.disabled = false;
+    });
+}
+
+function updateWatchlistButton(isWatching) {
+    const button = document.getElementById('watchlist-btn');
+    const text = document.getElementById('watchlist-text');
+    
+    if (isWatching) {
+        button.className = button.className.replace('border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20', 'border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30');
+        text.textContent = 'Remove from Watchlist';
+    } else {
+        button.className = button.className.replace('border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30', 'border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20');
+        text.textContent = 'Add to Watchlist';
+    }
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+        type === 'success' 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+@endauth
 @endsection

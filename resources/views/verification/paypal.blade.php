@@ -7,8 +7,8 @@
             <div class="p-6 text-gray-900">
                 <!-- Header -->
                 <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-gray-900">PayPal Email Verification</h1>
-                    <p class="mt-2 text-gray-600">Verify your PayPal email address to receive payments from domain sales.</p>
+                    <h1 class="text-3xl font-bold text-gray-900">PayPal Email Setup</h1>
+                    <p class="mt-2 text-gray-600">Add your PayPal email address to receive payments from domain sales. Your email will be automatically verified upon submission.</p>
                 </div>
 
                 @if($user->isPayPalVerified())
@@ -18,7 +18,7 @@
                             <i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i>
                             <div>
                                 <h3 class="text-lg font-medium text-green-800">PayPal Email Verified!</h3>
-                                <p class="text-green-700">Your PayPal email ({{ $user->paypal_email }}) has been verified and approved.</p>
+                                <p class="text-green-700">Your PayPal email ({{ $user->paypal_email }}) has been added and verified successfully.</p>
                             </div>
                         </div>
                     </div>
@@ -87,11 +87,11 @@
                 <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
                     <h3 class="text-lg font-medium text-blue-900 mb-4">
                         <i class="fas fa-info-circle mr-2"></i>
-                        About PayPal Verification
+                        About PayPal Email Setup
                     </h3>
                     <div class="space-y-3 text-sm text-blue-700">
-                        <p><strong>Why verify your PayPal email?</strong> This ensures you can receive payments from domain sales securely and quickly.</p>
-                        <p><strong>What happens next?</strong> Our team will review your PayPal email and approve it within 24 hours.</p>
+                        <p><strong>Why add your PayPal email?</strong> This ensures you can receive payments from domain sales securely and quickly.</p>
+                        <p><strong>What happens next?</strong> Your PayPal email will be automatically verified and ready to use immediately.</p>
                         <p><strong>Security:</strong> We only use your PayPal email for payment processing and never share it with third parties.</p>
                         <p><strong>Need help?</strong> If you don't have a PayPal account, you can create one at <a href="https://paypal.com" target="_blank" class="underline">paypal.com</a>.</p>
                     </div>

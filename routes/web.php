@@ -8,6 +8,11 @@ use App\Http\Controllers\OfferController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\BidController;
+use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\WatchlistController;
+use App\Http\Controllers\SellerDashboardController;
+use App\Http\Controllers\BuyerDashboardController;
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
@@ -36,11 +41,18 @@ Route::middleware('auth')->group(function () {
     
     // Verification routes
     Route::get('/verification', [\App\Http\Controllers\VerificationController::class, 'index'])->name('verification.index');
-    Route::get('/verification/paypal', [\App\Http\Controllers\VerificationController::class, 'showPayPalForm'])->name('verification.paypal');
+    Route::get('/verification/paypal', function() {
+        return view('verification.paypal-oauth', ['user' => auth()->user()]);
+    })->name('verification.paypal');
     Route::post('/verification/paypal', [\App\Http\Controllers\VerificationController::class, 'submitPayPalVerification'])->name('verification.paypal.submit');
     Route::get('/verification/government-id', [\App\Http\Controllers\VerificationController::class, 'showGovernmentIdForm'])->name('verification.government-id');
     Route::post('/verification/government-id', [\App\Http\Controllers\VerificationController::class, 'submitGovernmentIdVerification'])->name('verification.government-id.submit');
     Route::get('/verification/status', [\App\Http\Controllers\VerificationController::class, 'getStatus'])->name('verification.status');
+    
+    // PayPal OAuth routes
+    Route::get('/paypal/connect', [\App\Http\Controllers\PayPalOAuthController::class, 'redirect'])->name('paypal.connect');
+    Route::get('/paypal/callback', [\App\Http\Controllers\PayPalOAuthController::class, 'callback'])->name('paypal.callback');
+    Route::post('/paypal/disconnect', [\App\Http\Controllers\PayPalOAuthController::class, 'disconnect'])->name('paypal.disconnect');
     
     // Protected domain routes (user's own domains)
     Route::get('/my-domains', [DomainController::class, 'index'])->name('my.domains.index');
@@ -99,6 +111,39 @@ Route::middleware('auth')->group(function () {
     Route::post('/domains/{domain}/verification/verify', [\App\Http\Controllers\DomainVerificationController::class, 'verify'])->name('domains.verification.verify');
     Route::post('/domains/{domain}/verification/regenerate', [\App\Http\Controllers\DomainVerificationController::class, 'regenerate'])->name('domains.verification.regenerate');
     Route::get('/domains/{domain}/verification/status', [\App\Http\Controllers\DomainVerificationController::class, 'status'])->name('domains.verification.status');
+
+    // Conversation and messaging routes
+    Route::resource('conversations', ConversationController::class)->only(['index', 'show', 'store']);
+    Route::get('/conversations/unread-count', [ConversationController::class, 'unreadCount'])->name('conversations.unread-count');
+    
+    // Message routes
+    Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+    
+    // Notification routes
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::get('/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::delete('/notifications', [NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
+    
+    // Watchlist routes
+    Route::get('/watchlist', [WatchlistController::class, 'index'])->name('watchlist.index');
+    Route::post('/watchlist', [WatchlistController::class, 'store'])->name('watchlist.store');
+    Route::delete('/watchlist', [WatchlistController::class, 'destroy'])->name('watchlist.destroy');
+    Route::post('/watchlist/toggle', [WatchlistController::class, 'toggle'])->name('watchlist.toggle');
+    Route::get('/watchlist/check', [WatchlistController::class, 'check'])->name('watchlist.check');
+    Route::get('/watchlist/count', [WatchlistController::class, 'count'])->name('watchlist.count');
+    
+    // Dashboard routes
+    Route::get('/seller-dashboard', [SellerDashboardController::class, 'index'])->name('seller.dashboard');
+    Route::get('/seller-dashboard/stats', [SellerDashboardController::class, 'stats'])->name('seller.dashboard.stats');
+    Route::get('/seller-dashboard/recent-activity', [SellerDashboardController::class, 'recentActivity'])->name('seller.dashboard.recent-activity');
+    
+    Route::get('/buyer-dashboard', [BuyerDashboardController::class, 'index'])->name('buyer.dashboard');
+    Route::get('/buyer-dashboard/stats', [BuyerDashboardController::class, 'stats'])->name('buyer.dashboard.stats');
+    Route::get('/buyer-dashboard/recent-activity', [BuyerDashboardController::class, 'recentActivity'])->name('buyer.dashboard.recent-activity');
 
 });
 

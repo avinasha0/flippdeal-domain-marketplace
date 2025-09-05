@@ -176,6 +176,30 @@ class Domain extends Model
     }
 
     /**
+     * Get conversations about this domain.
+     */
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class);
+    }
+
+    /**
+     * Get watchlist entries for this domain.
+     */
+    public function watchlist(): HasMany
+    {
+        return $this->hasMany(Watchlist::class);
+    }
+
+    /**
+     * Get the current winning bid for this domain.
+     */
+    public function winningBid(): HasMany
+    {
+        return $this->hasMany(Bid::class)->winning();
+    }
+
+    /**
      * Get the full domain name (name + extension).
      */
     public function getFullDomainAttribute(): string

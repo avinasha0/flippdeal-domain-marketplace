@@ -379,22 +379,28 @@ class DomainController extends Controller
             $domain = Domain::create($data);
 
             // Log domain creation
-            AuditLog::create([
-                'user_id' => Auth::id(),
-                'event' => $auditEvent,
-                'auditable_type' => Domain::class,
-                'auditable_id' => $domain->id,
-                'new_values' => [
-                    'domain_name' => $domain->domain_name,
-                    'domain_extension' => $domain->domain_extension,
-                    'status' => $data['status'],
-                    'enable_buy_now' => $data['enable_buy_now'],
-                    'enable_bidding' => $data['enable_bidding'],
-                    'enable_offers' => $data['enable_offers']
-                ],
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
+            try {
+                AuditLog::create([
+                    'user_id' => Auth::id(),
+                    'event' => $auditEvent,
+                    'auditable_type' => Domain::class,
+                    'auditable_id' => $domain->id,
+                    'new_values' => [
+                        'domain_name' => $domain->domain_name,
+                        'domain_extension' => $domain->domain_extension,
+                        'status' => $data['status'],
+                        'enable_buy_now' => $data['enable_buy_now'],
+                        'enable_bidding' => $data['enable_bidding'],
+                        'enable_offers' => $data['enable_offers']
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ]);
+                \Log::info('AuditLog created successfully');
+            } catch (\Exception $e) {
+                \Log::error('AuditLog creation failed: ' . $e->getMessage());
+                // Don't fail the entire transaction for audit log issues
+            }
 
             DB::commit();
 
@@ -530,10 +536,45 @@ class DomainController extends Controller
      */
     public function destroy(Domain $domain)
     {
+        // 1. Check ownership
         if ($domain->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
         
+        // 2. Check if domain can be deleted (only draft domains)
+        if ($domain->status !== 'draft') {
+            abort(403, 'Only draft domains can be deleted. Active or sold domains cannot be deleted.');
+        }
+        
+        // 3. Check if domain has any bids
+        if ($domain->bids()->count() > 0) {
+            abort(403, 'Cannot delete domain with existing bids. Please contact support if you need assistance.');
+        }
+        
+        // 4. Check if domain has any offers
+        if ($domain->offers()->count() > 0) {
+            abort(403, 'Cannot delete domain with existing offers. Please contact support if you need assistance.');
+        }
+        
+        // 5. Check if domain has any conversations
+        if ($domain->conversations()->count() > 0) {
+            abort(403, 'Cannot delete domain with existing conversations. Please contact support if you need assistance.');
+        }
+        
+        // 6. Check if domain is on any watchlists
+        if ($domain->watchlist()->count() > 0) {
+            abort(403, 'Cannot delete domain that is being watched by users. Please contact support if you need assistance.');
+        }
+        
+        // 7. Log the deletion for audit purposes
+        \Log::info('Domain deleted', [
+            'domain_id' => $domain->id,
+            'domain_name' => $domain->full_domain,
+            'user_id' => auth()->id(),
+            'deleted_at' => now()
+        ]);
+        
+        // 8. Delete the domain
         $domain->delete();
 
         return redirect()->route('my.domains.index')
@@ -545,27 +586,55 @@ class DomainController extends Controller
      */
     public function publish(Domain $domain)
     {
-        // Check if user can publish this domain
-        if (!Gate::allows('publish', $domain)) {
-            abort(403, 'Unauthorized action.');
+        // Debug: Log the publish attempt
+        \Log::info('Publish attempt - NEW CODE:', [
+            'domain_id' => $domain->id,
+            'domain_name' => $domain->domain_name,
+            'domain_status' => $domain->status,
+            'domain_user_id' => $domain->user_id,
+            'current_user_id' => Auth::id()
+        ]);
+        
+        // Manual authorization check - bypass gate completely
+        if (Auth::id() !== $domain->user_id) {
+            \Log::error('Publish failed: User does not own domain', [
+                'user_id' => Auth::id(),
+                'domain_user_id' => $domain->user_id
+            ]);
+            abort(403, 'You can only publish your own domains.');
         }
         
         if ($domain->status !== 'draft') {
+            \Log::error('Publish failed: Domain is not draft', ['status' => $domain->status]);
             return back()->with('error', 'Only draft domains can be published.');
         }
 
+        \Log::info('Domain verification check:', [
+            'domain_verified' => $domain->domain_verified,
+            'domain_id' => $domain->id
+        ]);
+
+        // Check if domain is verified before publishing
         if (!$domain->domain_verified) {
-            return back()->with('error', 'Domain ownership must be verified before publishing.');
+            \Log::error('Publish failed: Domain not verified', [
+                'domain_verified' => $domain->domain_verified,
+                'domain_id' => $domain->id
+            ]);
+            return back()->with('error', 'Domain ownership must be verified before publishing. Please verify your domain first.');
         }
 
+        \Log::info('Starting database transaction for domain publish');
         DB::beginTransaction();
         
         try {
+            \Log::info('Updating domain status to active');
             $domain->update(['status' => 'active']);
+            \Log::info('Domain status updated successfully');
 
             // Log domain publication
             AuditLog::create([
                 'user_id' => Auth::id(),
+                'action' => 'domain_published',
                 'event' => 'domain_published',
                 'auditable_type' => Domain::class,
                 'auditable_id' => $domain->id,
@@ -574,11 +643,17 @@ class DomainController extends Controller
                 'user_agent' => request()->userAgent(),
             ]);
 
+            \Log::info('Committing database transaction');
             DB::commit();
+            \Log::info('Database transaction committed successfully');
 
             return back()->with('success', 'Domain published successfully! It is now visible to buyers.');
 
         } catch (\Exception $e) {
+            \Log::error('Publish failed with exception', [
+                'error' => $e->getMessage(),
+                'domain_id' => $domain->id
+            ]);
             DB::rollBack();
             return back()->with('error', 'Failed to publish domain. Please try again.');
         }

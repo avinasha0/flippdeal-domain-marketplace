@@ -161,7 +161,7 @@ class User extends Authenticatable
      */
     public function receivedMessages(): HasMany
     {
-        return $this->hasMany(Message::class, 'receiver_id');
+        return $this->hasMany(Message::class, 'sender_id');
     }
 
     /**
@@ -194,6 +194,55 @@ class User extends Authenticatable
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    /**
+     * Get conversations where user is the buyer.
+     */
+    public function buyerConversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'buyer_id');
+    }
+
+    /**
+     * Get conversations where user is the seller.
+     */
+    public function sellerConversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'seller_id');
+    }
+
+    /**
+     * Get all conversations for the user.
+     */
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'buyer_id')
+            ->orWhere('seller_id', $this->id);
+    }
+
+    /**
+     * Get the user's notifications.
+     */
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Get the user's watchlist.
+     */
+    public function watchlist(): HasMany
+    {
+        return $this->hasMany(Watchlist::class);
+    }
+
+    /**
+     * Get the user's bids.
+     */
+    public function bids(): HasMany
+    {
+        return $this->hasMany(Bid::class);
     }
 
     /**
@@ -250,7 +299,7 @@ class User extends Authenticatable
      */
     public function isVerified(): bool
     {
-        return $this->is_verified;
+        return (bool) $this->is_verified;
     }
 
     /**
@@ -293,7 +342,41 @@ class User extends Authenticatable
      */
     public function getUnreadMessageCountAttribute(): int
     {
-        return $this->receivedMessages()->unread()->count();
+        return $this->getUnreadConversationCountAttribute();
+    }
+
+    /**
+     * Get unread notification count.
+     */
+    public function getUnreadNotificationCountAttribute(): int
+    {
+        return $this->notifications()->unread()->count();
+    }
+
+    /**
+     * Get unread conversation count.
+     */
+    public function getUnreadConversationCountAttribute(): int
+    {
+        $buyerUnread = $this->buyerConversations()->sum('buyer_unread_count');
+        $sellerUnread = $this->sellerConversations()->sum('seller_unread_count');
+        return $buyerUnread + $sellerUnread;
+    }
+
+    /**
+     * Check if user is watching a domain.
+     */
+    public function isWatching(int $domainId): bool
+    {
+        return $this->watchlist()->where('domain_id', $domainId)->exists();
+    }
+
+    /**
+     * Get watchlist count.
+     */
+    public function getWatchlistCountAttribute(): int
+    {
+        return $this->watchlist()->count();
     }
 
     /**
@@ -319,7 +402,7 @@ class User extends Authenticatable
      */
     public function isPayPalVerified(): bool
     {
-        return $this->paypal_verified;
+        return (bool) $this->paypal_verified;
     }
 
     /**
@@ -327,7 +410,7 @@ class User extends Authenticatable
      */
     public function isGovernmentIdVerified(): bool
     {
-        return $this->government_id_verified;
+        return (bool) $this->government_id_verified;
     }
 
     /**

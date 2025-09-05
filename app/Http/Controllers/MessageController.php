@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\Conversation;
 use App\Models\User;
 use App\Models\Domain;
 use App\Models\Order;
@@ -78,39 +79,49 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'receiver_id' => 'required|exists:users,id',
-            'subject' => 'nullable|string|max:255',
-            'message' => 'required|string|max:5000',
-            'domain_id' => 'nullable|exists:domains,id',
-            'order_id' => 'nullable|exists:orders,id',
-            'type' => 'nullable|in:general,offer,order,dispute'
+            'conversation_id' => 'required|exists:conversations,id',
+            'message' => 'required|string|max:1000',
         ]);
 
-        // Check if user is not messaging themselves
-        if ($request->receiver_id === Auth::id()) {
-            return back()->with('error', 'You cannot send a message to yourself.');
+        $user = Auth::user();
+        $conversation = Conversation::findOrFail($request->conversation_id);
+
+        // Check if user is part of this conversation
+        if ($conversation->buyer_id !== $user->id && $conversation->seller_id !== $user->id) {
+            abort(403, 'Unauthorized access to conversation.');
         }
 
-        // Determine message type
-        $type = $request->type ?? 'general';
-        if ($request->domain_id) {
-            $type = 'offer';
-        } elseif ($request->order_id) {
-            $type = 'order';
-        }
-
-        Message::create([
-            'sender_id' => Auth::id(),
-            'receiver_id' => $request->receiver_id,
-            'domain_id' => $request->domain_id,
-            'order_id' => $request->order_id,
-            'subject' => $request->subject,
+        // Create the message
+        $message = Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
             'message' => $request->message,
-            'type' => $type,
         ]);
 
-        return redirect()->route('messages.conversation', $request->receiver_id)
-            ->with('success', 'Message sent successfully.');
+        // Update conversation
+        $conversation->update([
+            'last_message_at' => now(),
+        ]);
+
+        // Increment unread count for the other user
+        $conversation->incrementUnreadForUser(
+            $conversation->buyer_id === $user->id ? $conversation->seller_id : $conversation->buyer_id
+        );
+
+        // Create notification for the other user
+        $otherUserId = $conversation->buyer_id === $user->id ? $conversation->seller_id : $conversation->buyer_id;
+        \App\Models\Notification::createNotification(
+            $otherUserId,
+            'message_received',
+            'New Message Received',
+            "You have received a new message about {$conversation->domain->full_domain}",
+            ['conversation_id' => $conversation->id, 'domain_id' => $conversation->domain_id]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $message->load('sender'),
+        ]);
     }
 
     /**

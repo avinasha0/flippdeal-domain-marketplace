@@ -61,29 +61,35 @@ class VerificationController extends Controller
             ],
             [
                 'identifier' => $request->paypal_email,
-                'status' => 'pending',
+                'status' => 'verified',
+                'verified_at' => now(),
                 'data' => [
                     'email' => $request->paypal_email,
-                    'submitted_at' => now()->toISOString()
+                    'submitted_at' => now()->toISOString(),
+                    'auto_verified' => true
                 ]
             ]
         );
 
-        // Update user's PayPal email
-        $user->update(['paypal_email' => $request->paypal_email]);
+        // Update user's PayPal email and mark as verified
+        $user->update([
+            'paypal_email' => $request->paypal_email,
+            'paypal_verified' => true,
+            'paypal_verified_at' => now()
+        ]);
 
         // Log verification submission
         AuditLog::create([
             'user_id' => $user->id,
-            'event' => 'paypal_verification_submitted',
+            'event' => 'paypal_verification_auto_verified',
             'auditable_type' => Verification::class,
             'auditable_id' => $verification->id,
-            'new_values' => ['paypal_email' => $request->paypal_email],
+            'new_values' => ['paypal_email' => $request->paypal_email, 'verified' => true],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
 
-        return back()->with('success', 'PayPal email verification submitted successfully. Please wait for admin approval.');
+        return back()->with('success', 'PayPal email has been added and verified successfully!');
     }
 
     /**

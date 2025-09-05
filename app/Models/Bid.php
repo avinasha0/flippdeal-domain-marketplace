@@ -13,22 +13,18 @@ class Bid extends Model
 
     protected $fillable = [
         'domain_id',
-        'bidder_id',
-        'bid_amount',
-        'status',
+        'user_id',
+        'amount',
+        'is_winning',
+        'is_outbid',
         'bid_at',
-        'outbid_at',
-        'is_auto_bid',
-        'max_auto_bid',
-        'bidder_note',
     ];
 
     protected $casts = [
-        'bid_amount' => 'decimal:2',
-        'max_auto_bid' => 'decimal:2',
+        'amount' => 'decimal:2',
         'bid_at' => 'datetime',
-        'outbid_at' => 'datetime',
-        'is_auto_bid' => 'boolean',
+        'is_winning' => 'boolean',
+        'is_outbid' => 'boolean',
     ];
 
     /**
@@ -42,9 +38,9 @@ class Bid extends Model
     /**
      * Get the user who placed this bid.
      */
-    public function bidder(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'bidder_id');
+        return $this->belongsTo(User::class);
     }
 
     /**
@@ -52,7 +48,7 @@ class Bid extends Model
      */
     public function isHighest(): bool
     {
-        return $this->status === 'active';
+        return $this->is_winning;
     }
 
     /**
@@ -60,7 +56,7 @@ class Bid extends Model
      */
     public function isOutbid(): bool
     {
-        return $this->status === 'outbid';
+        return $this->is_outbid;
     }
 
     /**
@@ -68,7 +64,7 @@ class Bid extends Model
      */
     public function isWinning(): bool
     {
-        return $this->status === 'won';
+        return $this->is_winning;
     }
 
     /**
@@ -76,18 +72,7 @@ class Bid extends Model
      */
     public function getFormattedAmountAttribute(): string
     {
-        return '$' . number_format($this->bid_amount, 2);
-    }
-
-    /**
-     * Get the formatted maximum auto-bid amount.
-     */
-    public function getFormattedMaxAutoBidAttribute(): string
-    {
-        if (!$this->max_auto_bid) {
-            return 'N/A';
-        }
-        return '$' . number_format($this->max_auto_bid, 2);
+        return '$' . number_format($this->amount, 2);
     }
 
     /**
@@ -99,19 +84,19 @@ class Bid extends Model
     }
 
     /**
-     * Scope to get only active bids.
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
-
-    /**
      * Scope to get only winning bids.
      */
     public function scopeWinning($query)
     {
-        return $query->where('status', 'won');
+        return $query->where('is_winning', true);
+    }
+
+    /**
+     * Scope to get only outbid bids.
+     */
+    public function scopeOutbid($query)
+    {
+        return $query->where('is_outbid', true);
     }
 
     /**
@@ -127,6 +112,6 @@ class Bid extends Model
      */
     public function scopeByUser($query, $userId)
     {
-        return $query->where('bidder_id', $userId);
+        return $query->where('user_id', $userId);
     }
 }
