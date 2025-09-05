@@ -61,14 +61,32 @@
                                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
                                             {{ $domain->full_domain }}
                                         </h3>
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-                                            @if($domain->status === 'active') bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300
-                                            @elseif($domain->status === 'draft') bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300
-                                            @elseif($domain->status === 'sold') bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300
-                                            @else bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300
-                                                                    @endif">
-                                                                    {{ ucfirst($domain->status) }}
-                                                                </span>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                                @if($domain->status === 'active') bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300
+                                                @elseif($domain->status === 'draft') bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300
+                                                @elseif($domain->status === 'sold') bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300
+                                                @else bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300
+                                                @endif">
+                                                {{ ucfirst($domain->status) }}
+                                            </span>
+                                            
+                                            @if($domain->status === 'draft' && !$domain->domain_verified)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                                    </svg>
+                                                    Verification Required
+                                                </span>
+                                            @elseif($domain->domain_verified)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                    </svg>
+                                                    Verified
+                                                </span>
+                                            @endif
+                                        </div>
                                                             </div>
                                     <div class="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                         <div class="flex items-center">
@@ -101,9 +119,17 @@
                                                     </div>
                                                     <div class="flex items-center space-x-2">
                                                         @if($domain->status === 'draft')
-                                                            <form method="POST" action="{{ route('domains.publish', $domain) }}" class="inline">
-                                                                @csrf
-                                                                @method('PATCH')
+                                                            @if(!$domain->domain_verified)
+                                                                <a href="{{ route('domains.verification', $domain) }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                                                    </svg>
+                                                                    Verify Domain
+                                                                </a>
+                                                            @else
+                                                                <form method="POST" action="{{ route('domains.publish', $domain) }}" class="inline">
+                                                                    @csrf
+                                                                    @method('PATCH')
                                         <button type="submit" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -111,6 +137,24 @@
                                                                     Publish
                                                                 </button>
                                                             </form>
+                                                            @endif
+                                                        @elseif($domain->status === 'active')
+                                                            <span class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-100 dark:bg-green-900/20 dark:text-green-400 rounded-lg">
+                                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                                </svg>
+                                                                Active
+                                                            </span>
+                                                        @elseif($domain->status === 'inactive')
+                                                            <span class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 rounded-lg">
+                                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                                </svg>
+                                                                Inactive
+                                                            </span>
+                                                        @endif
+                                                        
+                                                        @if(in_array($domain->status, ['draft', 'inactive']))
                                                             <form method="POST" action="{{ route('domains.destroy', $domain) }}" class="inline" onsubmit="return confirm('⚠️ WARNING: This will permanently delete your domain listing.\n\nThis action cannot be undone and will remove:\n• All domain information\n• Any associated data\n\nAre you absolutely sure you want to delete this domain?')">
                                                                 @csrf
                                                                 @method('DELETE')

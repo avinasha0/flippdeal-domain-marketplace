@@ -125,4 +125,81 @@ class DomainVerificationController extends Controller
             'instructions' => $instructions
         ]);
     }
+
+    /**
+     * Download verification file for file-based verification.
+     */
+    public function downloadFile(Domain $domain)
+    {
+        $this->authorize('view', $domain);
+
+        $instructions = $this->verificationService->getVerificationInstructions($domain);
+        
+        if (empty($instructions) || !isset($instructions['file_verification'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File verification not available for this domain'
+            ], 400);
+        }
+
+        $fileContent = $instructions['file_verification']['content'];
+        $filename = $instructions['file_verification']['filename'];
+
+        return response($fileContent)
+            ->header('Content-Type', 'text/html')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    }
+
+    /**
+     * Check if domain has active website.
+     */
+    public function checkWebsiteStatus(Domain $domain): JsonResponse
+    {
+        $this->authorize('view', $domain);
+
+        try {
+            $websiteStatus = $this->verificationService->checkDomainWebsiteStatus($domain->full_domain);
+            
+            return response()->json([
+                'success' => true,
+                'website_status' => $websiteStatus
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check website status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify domain using file method only.
+     */
+    public function verifyByFile(Domain $domain): JsonResponse
+    {
+        $this->authorize('update', $domain);
+
+        try {
+            $isVerified = $this->verificationService->verifyDomainByFile($domain);
+
+            if ($isVerified) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Domain ownership verified successfully using file verification!',
+                    'verified' => true
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File verification failed. Please ensure the verification file is uploaded correctly.',
+                    'verified' => false
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File verification failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

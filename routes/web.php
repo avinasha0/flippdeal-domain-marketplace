@@ -66,6 +66,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/domains/{domain}/publish', [DomainController::class, 'publish'])->name('domains.publish');
     Route::patch('/domains/{domain}/deactivate', [DomainController::class, 'deactivate'])->name('domains.deactivate');
     Route::patch('/domains/{domain}/mark-sold', [DomainController::class, 'markAsSold'])->name('domains.mark-sold');
+    Route::patch('/domains/{domain}/change-to-draft', [DomainController::class, 'changeToDraft'])->name('domains.change-to-draft');
     
     // Order routes
     Route::resource('orders', OrderController::class);
@@ -111,6 +112,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/domains/{domain}/verification/verify', [\App\Http\Controllers\DomainVerificationController::class, 'verify'])->name('domains.verification.verify');
     Route::post('/domains/{domain}/verification/regenerate', [\App\Http\Controllers\DomainVerificationController::class, 'regenerate'])->name('domains.verification.regenerate');
     Route::get('/domains/{domain}/verification/status', [\App\Http\Controllers\DomainVerificationController::class, 'status'])->name('domains.verification.status');
+    
+    // File-based verification routes
+    Route::get('/domains/{domain}/verification/download-file', [\App\Http\Controllers\DomainVerificationController::class, 'downloadFile'])->name('domains.verification.download-file');
+    Route::get('/domains/{domain}/verification/check-website', [\App\Http\Controllers\DomainVerificationController::class, 'checkWebsiteStatus'])->name('domains.verification.check-website');
+    Route::post('/domains/{domain}/verification/verify-file', [\App\Http\Controllers\DomainVerificationController::class, 'verifyByFile'])->name('domains.verification.verify-file');
 
     // Conversation and messaging routes
     Route::resource('conversations', ConversationController::class)->only(['index', 'show', 'store']);

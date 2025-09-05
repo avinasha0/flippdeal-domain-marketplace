@@ -343,12 +343,12 @@ class DomainController extends Controller
                 return back()->withErrors(['error' => 'You must complete your account verification before listing domains for sale.']);
             }
             
-            // Set status to active (will require domain verification)
-            $data['status'] = 'active';
-            $data['domain_verified'] = false; // Domain verification still required
+            // Set status to draft first - domain must be verified before becoming active
+            $data['status'] = 'draft';
+            $data['domain_verified'] = false; // Domain verification required
             
-            $successMessage = 'Domain listed for sale successfully! Please verify domain ownership to complete the listing.';
-            $auditEvent = 'domain_published';
+            $successMessage = 'Domain created successfully! Please verify domain ownership to publish your listing.';
+            $auditEvent = 'domain_created_draft';
         } else {
             // Save as draft
             $data['status'] = 'draft';
@@ -366,11 +366,8 @@ class DomainController extends Controller
 
         // Set auction status if bidding is enabled
         if ($data['enable_bidding']) {
-            if ($data['status'] === 'active') {
-                $data['auction_status'] = 'scheduled'; // Will be activated after domain verification
-            } else {
-                $data['auction_status'] = 'draft';
-            }
+            // All domains start as draft - auction will be scheduled after verification
+            $data['auction_status'] = 'draft';
         }
 
         DB::beginTransaction();
@@ -541,9 +538,9 @@ class DomainController extends Controller
             abort(403, 'Unauthorized action.');
         }
         
-        // 2. Check if domain can be deleted (only draft domains)
-        if ($domain->status !== 'draft') {
-            abort(403, 'Only draft domains can be deleted. Active or sold domains cannot be deleted.');
+        // 2. Check if domain can be deleted (only draft and inactive domains)
+        if (!in_array($domain->status, ['draft', 'inactive'])) {
+            abort(403, 'Only draft and inactive domains can be deleted. Active or sold domains cannot be deleted.');
         }
         
         // 3. Check if domain has any bids
@@ -628,7 +625,14 @@ class DomainController extends Controller
         
         try {
             \Log::info('Updating domain status to active');
-            $domain->update(['status' => 'active']);
+            $updateData = ['status' => 'active'];
+            
+            // If bidding is enabled, set auction status to scheduled
+            if ($domain->enable_bidding) {
+                $updateData['auction_status'] = 'scheduled';
+            }
+            
+            $domain->update($updateData);
             \Log::info('Domain status updated successfully');
 
             // Log domain publication
@@ -685,6 +689,69 @@ class DomainController extends Controller
         $domain->update(['status' => 'inactive']);
 
         return back()->with('success', 'Domain deactivated successfully!');
+    }
+
+    /**
+     * Change domain status to draft (if no pending actions).
+     */
+    public function changeToDraft(Domain $domain)
+    {
+        // Debug logging
+        \Log::info('Change to Draft Request', [
+            'domain_id' => $domain->id,
+            'domain_name' => $domain->full_domain,
+            'current_status' => $domain->status,
+            'user_id' => auth()->id(),
+            'domain_user_id' => $domain->user_id
+        ]);
+
+        if ($domain->user_id !== auth()->id()) {
+            \Log::error('Unauthorized change to draft attempt', [
+                'domain_user_id' => $domain->user_id,
+                'auth_user_id' => auth()->id()
+            ]);
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Check if domain can be changed to draft
+        if (!in_array($domain->status, ['active', 'inactive'])) {
+            \Log::warning('Invalid status for draft change', ['status' => $domain->status]);
+            return back()->with('error', 'Only active or inactive domains can be changed to draft.');
+        }
+
+        // Check for pending actions
+        if ($domain->hasPendingActions()) {
+            $pendingActions = $domain->getPendingActionsSummary();
+            $actionsText = implode(', ', $pendingActions);
+            \Log::warning('Pending actions prevent draft change', ['actions' => $pendingActions]);
+            return back()->with('error', "Cannot change to draft. Domain has pending actions: {$actionsText}");
+        }
+
+        // Update status to draft
+        $result = $domain->update(['status' => 'draft']);
+        
+        \Log::info('Status update result', [
+            'result' => $result,
+            'new_status' => $domain->fresh()->status
+        ]);
+
+        if ($result) {
+            return back()->with('success', 'Domain status changed to draft successfully!');
+        } else {
+            return back()->with('error', 'Failed to change domain status to draft.');
+        }
+    }
+
+    /**
+     * Check if domain can be changed to draft.
+     */
+    public function canChangeToDraft(Domain $domain)
+    {
+        if ($domain->user_id !== auth()->id()) {
+            return false;
+        }
+
+        return in_array($domain->status, ['active', 'inactive']) && !$domain->hasPendingActions();
     }
 
     /**

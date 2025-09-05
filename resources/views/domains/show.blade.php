@@ -27,21 +27,42 @@
             </p>
             
             <!-- Quick Stats -->
-            <div class="flex justify-center space-x-8 mb-8">
+            <div class="flex flex-wrap justify-center gap-8 mb-8">
                 <div class="text-center">
                     <div class="text-2xl font-bold">{{ $domain->category ?: 'General' }}</div>
                     <div class="text-blue-200 text-sm">Category</div>
                 </div>
+                
                 @if($domain->registration_date)
                 <div class="text-center">
                     <div class="text-2xl font-bold">{{ $domain->registration_date->format('Y') }}</div>
                     <div class="text-blue-200 text-sm">Registered</div>
                 </div>
                 @endif
+                
                 @if($domain->has_website)
                 <div class="text-center">
                     <div class="text-2xl font-bold">✓</div>
                     <div class="text-blue-200 text-sm">Website</div>
+                </div>
+                @endif
+                
+                <div class="text-center">
+                    <div class="text-2xl font-bold">{{ $domain->formatted_price }}</div>
+                    <div class="text-blue-200 text-sm">Asking Price</div>
+                </div>
+                
+                @if($domain->bin_price)
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-300">{{ $domain->formatted_bin_price }}</div>
+                    <div class="text-blue-200 text-sm">Buy It Now</div>
+                </div>
+                @endif
+                
+                @if($domain->enable_bidding && $domain->starting_bid)
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-orange-300">{{ $domain->formatted_starting_bid }}</div>
+                    <div class="text-blue-200 text-sm">Starting Bid</div>
                 </div>
                 @endif
             </div>
@@ -125,7 +146,6 @@
             </div>
 
             <!-- Description Card -->
-            @if($domain->description)
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300">
                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                     <div class="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg mr-3">
@@ -135,9 +155,249 @@
                     </div>
                     About This Domain
                 </h2>
-                <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">{{ $domain->description }}</p>
+                
+                @if($domain->description)
+                    <div class="prose prose-lg max-w-none dark:prose-invert">
+                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-lg mb-6">{{ $domain->description }}</p>
+                    </div>
+                @else
+                    <div class="text-center py-8">
+                        <svg class="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="text-gray-500 dark:text-gray-400 text-lg">No description provided for this domain.</p>
+                    </div>
+                @endif
             </div>
-            @endif
+
+            <!-- Domain Specifications -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                    <div class="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg mr-3">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    Domain Specifications
+                </h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Basic Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Basic Information
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Domain Name</span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white font-mono">{{ $domain->full_domain }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Category</span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white capitalize">{{ $domain->category ?: 'General' }}</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Status</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    @if($domain->status === 'active') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    @elseif($domain->status === 'draft') bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                    @elseif($domain->status === 'sold') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                    @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                    @endif">
+                                    {{ ucfirst($domain->status) }}
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-2">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Verification</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    @if($domain->domain_verified) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    @else bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                    @endif">
+                                    @if($domain->domain_verified)
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Verified
+                                    @else
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Not Verified
+                                    @endif
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Domain History -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Domain History
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Registration Date</span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                                    @if($domain->registration_date)
+                                        {{ $domain->registration_date->format('d-m-Y') }}
+                                    @else
+                                        <span class="text-gray-400">Not available</span>
+                                    @endif
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Expiry Date</span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                                    @if($domain->expiry_date)
+                                        {{ $domain->expiry_date->format('d-m-Y') }}
+                                    @else
+                                        <span class="text-gray-400">Not available</span>
+                                    @endif
+                                </span>
+                            </div>
+                            
+                            @if($domain->registration_date && $domain->expiry_date)
+                            <div class="flex justify-between items-center py-2">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Age</span>
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                                    {{ round($domain->registration_date->diffInYears($domain->expiry_date)) }} years
+                                </span>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <!-- Domain Features -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Domain Features
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Has existing website</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    @if($domain->has_website) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                    @endif">
+                                    @if($domain->has_website)
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Yes
+                                    @else
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        No
+                                    @endif
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Has traffic/revenue</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    @if($domain->has_traffic) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                    @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                    @endif">
+                                    @if($domain->has_traffic)
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Yes
+                                    @else
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        No
+                                    @endif
+                                </span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-2">
+                                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Premium domain</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    @if($domain->premium_domain) bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
+                                    @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200
+                                    @endif">
+                                    @if($domain->premium_domain)
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Yes
+                                    @else
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        No
+                                    @endif
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pricing Information - Full Width -->
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        Pricing Information
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Asking Price</p>
+                                <p class="text-xl font-bold text-blue-900 dark:text-blue-100">{{ $domain->formatted_price }}</p>
+                            </div>
+                        </div>
+                        
+                        @if($domain->bin_price)
+                        <div class="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-green-600 dark:text-green-400 mb-1">Buy It Now</p>
+                                <p class="text-xl font-bold text-green-900 dark:text-green-100">{{ $domain->formatted_bin_price }}</p>
+                            </div>
+                        </div>
+                        @endif
+                        
+                        @if($domain->enable_bidding && $domain->starting_bid)
+                        <div class="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Starting Bid</p>
+                                <p class="text-xl font-bold text-orange-900 dark:text-orange-100">{{ $domain->formatted_starting_bid }}</p>
+                            </div>
+                        </div>
+                        @endif
+                        
+                        @if($domain->accepts_offers && $domain->minimum_offer)
+                        <div class="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-purple-600 dark:text-purple-400 mb-1">Min Offer</p>
+                                <p class="text-xl font-bold text-purple-900 dark:text-purple-100">{{ $domain->formatted_minimum_offer }}</p>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
 
             <!-- Additional Features -->
             @if($domain->additional_features)
@@ -153,6 +413,85 @@
                 <p class="text-gray-700 dark:text-gray-300 leading-relaxed">{{ $domain->additional_features }}</p>
             </div>
             @endif
+
+            <!-- Domain Analytics & Statistics -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                    <div class="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg mr-3">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    Domain Analytics & Statistics
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Views Count -->
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Total Views</p>
+                                <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">{{ $domain->views_count ?? 0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bids Count -->
+                    @if($domain->enable_bidding)
+                    <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-orange-600 dark:text-orange-400">Total Bids</p>
+                                <p class="text-2xl font-bold text-orange-900 dark:text-orange-100">{{ $domain->bid_count ?? 0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+                    
+                    <!-- Offers Count -->
+                    @if($domain->accepts_offers)
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-green-600 dark:text-green-400">Offers Received</p>
+                                <p class="text-2xl font-bold text-green-900 dark:text-green-100">{{ $domain->offers_count ?? 0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+                    
+                    <!-- Watchlist Count -->
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-purple-600 dark:text-purple-400">In Watchlists</p>
+                                <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">{{ $domain->watchlist_count ?? 0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Domain Timeline -->
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 hover:shadow-2xl transition-all duration-300">
@@ -527,6 +866,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function checkWatchlistStatus(domainId) {
+    // Check if watchlist elements exist before making the request
+    const button = document.getElementById('watchlist-btn');
+    if (!button) {
+        console.log('Watchlist button not found - skipping status check');
+        return;
+    }
+    
     fetch(`/watchlist/check?domain_id=${domainId}`)
         .then(response => response.json())
         .then(data => {
@@ -540,6 +886,12 @@ function checkWatchlistStatus(domainId) {
 function toggleWatchlist(domainId) {
     const button = document.getElementById('watchlist-btn');
     const text = document.getElementById('watchlist-text');
+    
+    // Check if elements exist
+    if (!button || !text) {
+        console.error('Watchlist elements not found');
+        return;
+    }
     
     // Disable button during request
     button.disabled = true;
@@ -577,6 +929,12 @@ function toggleWatchlist(domainId) {
 function updateWatchlistButton(isWatching) {
     const button = document.getElementById('watchlist-btn');
     const text = document.getElementById('watchlist-text');
+    
+    // Check if elements exist before trying to access them
+    if (!button || !text) {
+        console.log('Watchlist elements not found - skipping update');
+        return;
+    }
     
     if (isWatching) {
         button.className = button.className.replace('border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20', 'border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30');

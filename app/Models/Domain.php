@@ -68,6 +68,7 @@ class Domain extends Model
         'auto_accept_threshold'
     ];
 
+
     protected $casts = [
         'asking_price' => 'decimal:2',
         'registration_date' => 'date',
@@ -754,6 +755,81 @@ class Domain extends Model
     }
 
     /**
+     * Check if domain has any pending actions that prevent status change.
+     */
+    public function hasPendingActions(): bool
+    {
+        return $this->hasActiveBids() || 
+               $this->hasPendingOffers() || 
+               $this->hasPendingOrders() ||
+               $this->hasActiveAuction();
+    }
+
+    /**
+     * Check if domain has active bids.
+     */
+    public function hasActiveBids(): bool
+    {
+        return $this->bids()->where('status', 'active')->exists();
+    }
+
+    /**
+     * Check if domain has pending offers.
+     */
+    public function hasPendingOffers(): bool
+    {
+        return $this->offers()->where('status', 'pending')->exists();
+    }
+
+    /**
+     * Check if domain has pending orders.
+     */
+    public function hasPendingOrders(): bool
+    {
+        return $this->orders()->whereIn('status', ['pending', 'paid', 'in_escrow'])->exists();
+    }
+
+    /**
+     * Check if domain has an active auction.
+     */
+    public function hasActiveAuction(): bool
+    {
+        return $this->enable_bidding && 
+               $this->auction_status === 'active' && 
+               $this->auction_end && 
+               $this->auction_end->isFuture();
+    }
+
+    /**
+     * Get pending actions summary for display.
+     */
+    public function getPendingActionsSummary(): array
+    {
+        $actions = [];
+        
+        if ($this->hasActiveBids()) {
+            $bidCount = $this->bids()->where('status', 'active')->count();
+            $actions[] = "{$bidCount} active bid" . ($bidCount > 1 ? 's' : '');
+        }
+        
+        if ($this->hasPendingOffers()) {
+            $offerCount = $this->offers()->where('status', 'pending')->count();
+            $actions[] = "{$offerCount} pending offer" . ($offerCount > 1 ? 's' : '');
+        }
+        
+        if ($this->hasPendingOrders()) {
+            $orderCount = $this->orders()->whereIn('status', ['pending', 'paid', 'in_escrow'])->count();
+            $actions[] = "{$orderCount} pending order" . ($orderCount > 1 ? 's' : '');
+        }
+        
+        if ($this->hasActiveAuction()) {
+            $actions[] = "active auction";
+        }
+        
+        return $actions;
+    }
+
+    /**
      * Boot method to automatically generate slug before saving.
      */
     protected static function boot()
@@ -769,6 +845,11 @@ class Domain extends Model
         static::updating(function ($domain) {
             if ($domain->isDirty('domain_name') || $domain->isDirty('domain_extension')) {
                 $domain->slug = $domain->generateSlug();
+            }
+            
+            // Prevent setting status to 'active' without domain verification
+            if ($domain->isDirty('status') && $domain->status === 'active' && !$domain->domain_verified) {
+                throw new \Exception('Domain must be verified before it can be published.');
             }
         });
     }
