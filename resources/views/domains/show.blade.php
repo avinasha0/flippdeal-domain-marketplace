@@ -437,7 +437,7 @@
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Total Views</p>
-                                <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">{{ $domain->views_count ?? 0 }}</p>
+                                <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">{{ $domain->view_count ?? 0 }}</p>
                             </div>
                         </div>
                     </div>
@@ -453,7 +453,7 @@
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-orange-600 dark:text-orange-400">Total Bids</p>
-                                <p class="text-2xl font-bold text-orange-900 dark:text-orange-100">{{ $domain->bid_count ?? 0 }}</p>
+                                <p class="text-2xl font-bold text-orange-900 dark:text-orange-100">{{ $domain->bids_count ?? 0 }}</p>
                             </div>
                         </div>
                     </div>
@@ -487,6 +487,21 @@
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-purple-600 dark:text-purple-400">In Watchlists</p>
                                 <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">{{ $domain->watchlist_count ?? 0 }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Favorites Count -->
+                    <div class="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-xl p-4 border border-pink-200 dark:border-pink-800">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="w-8 h-8 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-pink-600 dark:text-pink-400">Favorites</p>
+                                <p class="text-2xl font-bold text-pink-900 dark:text-pink-100">{{ $domain->favorites_count ?? 0 }}</p>
                             </div>
                         </div>
                     </div>
@@ -621,12 +636,27 @@
                                 </form>
                             @endif
                             
-                            <a href="{{ route('domains.edit', $domain) }}" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 block text-center">
-                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                                Edit Domain
-                            </a>
+                            @if($domain->status === 'sold')
+                                <!-- Sold Domain Notice -->
+                                <div class="w-full bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+                                    <div class="flex items-center justify-center mb-2">
+                                        <svg class="w-6 h-6 text-green-600 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span class="text-green-800 dark:text-green-200 font-semibold">Domain Sold</span>
+                                    </div>
+                                    <p class="text-sm text-green-700 dark:text-green-300">
+                                        This domain has been sold and is no longer available for editing.
+                                    </p>
+                                </div>
+                            @else
+                                <a href="{{ route('domains.edit', $domain) }}" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 block text-center">
+                                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                    Edit Domain
+                                </a>
+                            @endif
                             
                             <a href="{{ route('my.domains.index') }}" class="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-4 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 block text-center">
                                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -680,6 +710,39 @@
                                 </button>
                             </form>
                         </div>
+
+                        <!-- Chat with Seller -->
+                        @auth
+                            @if(auth()->id() !== $domain->user_id)
+                                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-indigo-200 dark:border-indigo-800 hover:shadow-2xl transition-all duration-300">
+                                    <div class="text-center mb-4">
+                                        <h3 class="text-xl font-bold text-indigo-900 dark:text-indigo-100 mb-2">Chat with Seller</h3>
+                                        <p class="text-sm text-indigo-700 dark:text-indigo-300">Ask questions or negotiate directly with the domain owner</p>
+                                    </div>
+                                    <a href="{{ route('conversations.show', ['conversation' => $domain->id, 'domain_id' => $domain->id]) }}" 
+                                       class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-4 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center">
+                                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                        </svg>
+                                        Start Conversation
+                                    </a>
+                                </div>
+                            @endif
+                        @else
+                            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-gray-200 dark:border-gray-700">
+                                <div class="text-center mb-4">
+                                    <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Chat with Seller</h3>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Login to start a conversation with the domain owner</p>
+                                </div>
+                                <a href="{{ route('login') }}" 
+                                   class="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-4 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center justify-center">
+                                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                                    </svg>
+                                    Login to Chat
+                                </a>
+                            </div>
+                        @endauth
 
                         <!-- Make an Offer Option -->
                         @if($domain->acceptsOffers())

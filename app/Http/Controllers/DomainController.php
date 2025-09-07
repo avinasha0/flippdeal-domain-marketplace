@@ -428,13 +428,26 @@ class DomainController extends Controller
             if (!auth()->check()) {
                 return redirect()->route('login')->with('message', 'Please login to view domain details.');
             }
+            
+            // Increment view count ONLY for active domains when viewed by non-owners
+            if ($domain->user_id !== auth()->id()) {
+                $domain->incrementViewCount();
+            }
+            
+            // Load relationships for analytics
+            $domain->loadCount(['watchlist', 'favorites', 'bids']);
+            
             return view('domains.show', compact('domain'));
         }
         
-        // For non-published domains, only allow access to the owner
+        // For non-published domains (draft, inactive, sold), only allow access to the owner
         if (!auth()->check() || $domain->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
+        
+        // For draft/inactive domains, do NOT increment view count
+        // Only load relationships for analytics (owner can see their own stats)
+        $domain->loadCount(['watchlist', 'favorites', 'bids']);
         
         return view('domains.show', compact('domain'));
     }
@@ -447,6 +460,13 @@ class DomainController extends Controller
         if ($domain->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
         }
+        
+        // Prevent editing of sold domains
+        if ($domain->status === 'sold') {
+            return redirect()->route('domains.show', $domain)
+                ->with('error', 'This domain has been sold and cannot be edited. You can only view the details.');
+        }
+        
         return view('domains.edit', compact('domain'));
     }
 
@@ -457,6 +477,12 @@ class DomainController extends Controller
     {
         if ($domain->user_id !== auth()->id()) {
             abort(403, 'Unauthorized action.');
+        }
+        
+        // Prevent updating sold domains
+        if ($domain->status === 'sold') {
+            return redirect()->route('domains.show', $domain)
+                ->with('error', 'This domain has been sold and cannot be updated.');
         }
         
         $data = $request->validated();

@@ -13,6 +13,11 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\WatchlistController;
 use App\Http\Controllers\SellerDashboardController;
 use App\Http\Controllers\BuyerDashboardController;
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\Admin\EscrowController;
+use App\Http\Controllers\Admin\RealtimeController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\DomainTransferController;
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
@@ -117,6 +122,24 @@ Route::middleware('auth')->group(function () {
     Route::get('/domains/{domain}/verification/download-file', [\App\Http\Controllers\DomainVerificationController::class, 'downloadFile'])->name('domains.verification.download-file');
     Route::get('/domains/{domain}/verification/check-website', [\App\Http\Controllers\DomainVerificationController::class, 'checkWebsiteStatus'])->name('domains.verification.check-website');
     Route::post('/domains/{domain}/verification/verify-file', [\App\Http\Controllers\DomainVerificationController::class, 'verifyByFile'])->name('domains.verification.verify-file');
+    
+    // Purchase routes
+    Route::get('/domains/{domain}/purchase', [PurchaseController::class, 'showPurchaseForm'])->name('domains.purchase');
+    Route::post('/domains/{domain}/buy-now', [PurchaseController::class, 'processBuyNow'])->name('domains.buy-now');
+    Route::post('/domains/{domain}/auction-win', [PurchaseController::class, 'processAuctionWin'])->name('domains.auction-win');
+    Route::get('/purchase/success', [PurchaseController::class, 'handleSuccess'])->name('purchase.success');
+    Route::get('/purchase/cancel', [PurchaseController::class, 'handleCancel'])->name('purchase.cancel');
+    Route::get('/purchase/complete/{transaction}', [PurchaseController::class, 'showComplete'])->name('purchase.complete');
+    Route::get('/my-purchases', [PurchaseController::class, 'myPurchases'])->name('purchase.my-purchases');
+    Route::get('/my-sales', [PurchaseController::class, 'mySales'])->name('purchase.my-sales');
+    
+    // Domain transfer routes
+    Route::get('/transactions/{transaction}/transfer', [DomainTransferController::class, 'showTransferForm'])->name('transactions.transfer');
+    Route::post('/transactions/{transaction}/transfer', [DomainTransferController::class, 'submitTransfer'])->name('transactions.transfer.submit');
+    Route::get('/transactions/{transaction}/transfer-instructions', [DomainTransferController::class, 'showInstructions'])->name('transactions.transfer-instructions');
+    Route::get('/transactions/{transaction}/transfer-status', [DomainTransferController::class, 'getTransferStatus'])->name('transactions.transfer-status');
+    Route::get('/transactions/{transaction}/buyer-status', [DomainTransferController::class, 'showBuyerStatus'])->name('transactions.buyer-status');
+    Route::get('/domains/{domain}/verification-file', [DomainTransferController::class, 'downloadVerificationFile'])->name('domains.verification-file');
 
     // Conversation and messaging routes
     Route::resource('conversations', ConversationController::class)->only(['index', 'show', 'store']);
@@ -188,6 +211,28 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     
     // Verification management
     Route::get('/verifications/{verification}/download', [\App\Http\Controllers\VerificationController::class, 'downloadGovernmentId'])->name('admin.verifications.download');
+    
+    // Escrow management
+    Route::get('/escrow', [EscrowController::class, 'index'])->name('admin.escrow.index');
+    Route::get('/escrow/{transaction}', [EscrowController::class, 'show'])->name('admin.escrow.show');
+    Route::post('/escrow/{transaction}/release', [EscrowController::class, 'releaseEscrow'])->name('admin.escrow.release');
+    Route::post('/escrow/{transaction}/refund', [EscrowController::class, 'refundEscrow'])->name('admin.escrow.refund');
+    Route::get('/escrow/transfers/pending', [EscrowController::class, 'pendingTransfers'])->name('admin.escrow.pending-transfers');
+    Route::post('/escrow/transfers/{transfer}/verify', [EscrowController::class, 'verifyTransfer'])->name('admin.escrow.verify-transfer');
+    Route::get('/escrow/statistics', [EscrowController::class, 'statistics'])->name('admin.escrow.statistics');
+    Route::get('/escrow/export', [EscrowController::class, 'export'])->name('admin.escrow.export');
+    
+    // Real-time system management
+    Route::get('/realtime', [RealtimeController::class, 'index'])->name('admin.realtime.index');
+    Route::get('/realtime/data', [RealtimeController::class, 'realtimeData'])->name('admin.realtime.data');
+    Route::get('/realtime/broadcasting-stats', [RealtimeController::class, 'broadcastingStats'])->name('admin.realtime.broadcasting-stats');
+    Route::post('/realtime/restart-queue', [RealtimeController::class, 'restartQueueWorkers'])->name('admin.realtime.restart-queue');
+    Route::post('/realtime/clear-failed-jobs', [RealtimeController::class, 'clearFailedJobs'])->name('admin.realtime.clear-failed-jobs');
+    Route::get('/realtime/export-logs', [RealtimeController::class, 'exportLogs'])->name('admin.realtime.export-logs');
 });
+
+// Webhook routes (no CSRF protection needed)
+Route::post('/webhook/payments/paypal', [WebhookController::class, 'handlePayPalWebhook'])->name('webhook.paypal');
+Route::post('/webhook/payments/test', [WebhookController::class, 'handleTestWebhook'])->name('webhook.test');
 
 require __DIR__.'/auth.php';

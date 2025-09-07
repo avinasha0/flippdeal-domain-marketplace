@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Conversation extends Model
 {
@@ -62,9 +63,9 @@ class Conversation extends Model
     /**
      * Get the latest message in this conversation.
      */
-    public function latestMessage(): HasMany
+    public function latestMessage(): HasOne
     {
-        return $this->hasMany(Message::class)->latest();
+        return $this->hasOne(Message::class, 'conversation_id', 'id')->latest('created_at');
     }
 
     /**

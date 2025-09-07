@@ -3,338 +3,353 @@
 namespace App\Services;
 
 use App\Models\Domain;
-use App\Models\Verification;
+use App\Models\DomainVerification;
+use App\Models\User;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class DomainVerificationService
 {
-    /**
-     * Generate a verification record for domain ownership.
-     */
-    public function generateVerificationRecord(Domain $domain): Verification
+    protected $auditService;
+    protected $dnsResolver;
+    protected $tokenTtl;
+    protected $maxAttempts;
+
+    public function __construct(AuditService $auditService, DnsResolverInterface $dnsResolver)
     {
-        $verificationCode = $this->generateVerificationCode();
-        
-        return Verification::create([
-            'user_id' => $domain->user_id,
-            'type' => 'domain_ownership',
-            'status' => 'pending',
-            'verification_data' => [
-                'domain_id' => $domain->id,
-                'domain_name' => $domain->full_domain,
-                'verification_code' => $verificationCode,
-                'verification_method' => 'dns_txt',
-                'txt_record' => "domain-verification={$verificationCode}",
-                'cname_record' => "verify.{$domain->full_domain}",
-                'cname_target' => "verification.domainmarketplace.com"
-            ],
-            'verification_code' => $verificationCode,
-            'expires_at' => now()->addDays(7)
-        ]);
+        $this->auditService = $auditService;
+        $this->dnsResolver = $dnsResolver;
+        $this->tokenTtl = config('verification.token_ttl_minutes', 120);
+        $this->maxAttempts = config('verification.max_attempts', 12);
     }
 
     /**
-     * Verify domain ownership using DNS records or file verification.
+     * Create DNS TXT verification for a domain
      */
-    public function verifyDomainOwnership(Domain $domain): bool
+    public function createDnsVerification(Domain $domain, User $user): array
     {
-        $verification = $this->getDomainVerification($domain);
-        
-        if (!$verification) {
-            return false;
-        }
-
-        $verificationData = $verification->verification_data;
-        
-        // Try file verification first (if domain has active website)
-        if ($this->verifyDomainByFile($domain)) {
-            return true;
-        }
-        
-        // Try TXT record verification
-        if ($this->verifyTxtRecord($domain->full_domain, $verificationData['txt_record'])) {
-            $this->markDomainAsVerified($domain, $verification, 'dns_txt');
-            return true;
-        }
-
-        // Try CNAME record verification
-        if ($this->verifyCnameRecord($verificationData['cname_record'], $verificationData['cname_target'])) {
-            $this->markDomainAsVerified($domain, $verification, 'dns_cname');
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Verify TXT record for domain.
-     */
-    private function verifyTxtRecord(string $domain, string $expectedRecord): bool
-    {
-        try {
-            $txtRecords = dns_get_record($domain, DNS_TXT);
-            
-            foreach ($txtRecords as $record) {
-                if (in_array($expectedRecord, $record['txt'])) {
-                    return true;
-                }
-            }
-            
-            return false;
-        } catch (\Exception $e) {
-            Log::error("DNS TXT verification failed for {$domain}: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Verify CNAME record for domain.
-     */
-    private function verifyCnameRecord(string $cname, string $expectedTarget): bool
-    {
-        try {
-            $cnameRecords = dns_get_record($cname, DNS_CNAME);
-            
-            foreach ($cnameRecords as $record) {
-                if ($record['target'] === $expectedTarget) {
-                    return true;
-                }
-            }
-            
-            return false;
-        } catch (\Exception $e) {
-            Log::error("DNS CNAME verification failed for {$cname}: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Mark domain as verified.
-     */
-    private function markDomainAsVerified(Domain $domain, Verification $verification, string $method): void
-    {
-        $domain->update([
-            'domain_verified' => true,
-            'verified_at' => now(),
-            'verification_method' => $method
-        ]);
-
-        $verification->markAsVerified();
-        
-        Log::info("Domain {$domain->full_domain} verified using {$method}");
-    }
-
-    /**
-     * Get domain verification record.
-     */
-    private function getDomainVerification(Domain $domain): ?Verification
-    {
-        return Verification::where('user_id', $domain->user_id)
-            ->where('type', 'domain_ownership')
+        // Check if there's already a pending verification
+        $existing = DomainVerification::where('domain_id', $domain->id)
             ->where('status', 'pending')
-            ->whereJsonContains('verification_data->domain_id', $domain->id)
+            ->where('method', 'dns_txt')
             ->first();
-    }
 
-    /**
-     * Generate a unique verification code.
-     */
-    private function generateVerificationCode(): string
-    {
-        return Str::random(32);
-    }
-
-    /**
-     * Generate verification file content for file-based verification.
-     */
-    public function generateVerificationFileContent(string $verificationCode): string
-    {
-        return "<!-- FlippDeal Domain Verification -->\n" .
-               "<!-- Verification Code: {$verificationCode} -->\n" .
-               "<!-- Generated on: " . now()->toISOString() . " -->\n" .
-               "<!DOCTYPE html>\n" .
-               "<html>\n" .
-               "<head>\n" .
-               "    <title>Domain Verification - FlippDeal</title>\n" .
-               "    <meta name=\"robots\" content=\"noindex, nofollow\">\n" .
-               "</head>\n" .
-               "<body>\n" .
-               "    <h1>Domain Verification</h1>\n" .
-               "    <p>This file is used to verify domain ownership for FlippDeal.</p>\n" .
-               "    <p>Verification Code: <strong>{$verificationCode}</strong></p>\n" .
-               "    <p>Generated: " . now()->format('Y-m-d H:i:s T') . "</p>\n" .
-               "</body>\n" .
-               "</html>";
-    }
-
-    /**
-     * Verify domain ownership using file-based verification.
-     */
-    public function verifyDomainByFile(Domain $domain): bool
-    {
-        $verification = $this->getDomainVerification($domain);
-        
-        if (!$verification) {
-            return false;
-        }
-
-        $verificationData = $verification->verification_data;
-        $verificationCode = $verificationData['verification_code'];
-        
-        // Try to fetch the verification file from the domain
-        $verificationUrl = "https://{$domain->full_domain}/flippdeal-verification.html";
-        
-        try {
-            $context = stream_context_create([
-                'http' => [
-                    'timeout' => 10,
-                    'user_agent' => 'FlippDeal-Verification/1.0',
-                    'follow_location' => true,
-                    'max_redirects' => 3
-                ]
-            ]);
-            
-            $content = file_get_contents($verificationUrl, false, $context);
-            
-            if ($content === false) {
-                return false;
-            }
-            
-            // Check if the verification code is present in the file
-            if (strpos($content, $verificationCode) !== false) {
-                $this->markDomainAsVerified($domain, $verification, 'file_verification');
-                return true;
-            }
-            
-            return false;
-        } catch (\Exception $e) {
-            Log::error("File verification failed for {$domain->full_domain}: " . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Check if domain has an active website (HTTP response).
-     */
-    public function checkDomainWebsiteStatus(string $domain): array
-    {
-        $urls = [
-            "https://{$domain}",
-            "http://{$domain}",
-            "https://www.{$domain}",
-            "http://www.{$domain}"
-        ];
-        
-        foreach ($urls as $url) {
-            try {
-                $context = stream_context_create([
-                    'http' => [
-                        'timeout' => 5,
-                        'user_agent' => 'FlippDeal-Verification/1.0',
-                        'follow_location' => true,
-                        'max_redirects' => 2
-                    ]
-                ]);
-                
-                $headers = get_headers($url, 1, $context);
-                
-                if ($headers && isset($headers[0])) {
-                    $statusCode = (int) substr($headers[0], 9, 3);
-                    
-                    if ($statusCode >= 200 && $statusCode < 400) {
-                        return [
-                            'has_website' => true,
-                            'url' => $url,
-                            'status_code' => $statusCode,
-                            'method' => 'file_verification'
-                        ];
-                    }
-                }
-            } catch (\Exception $e) {
-                continue;
-            }
-        }
-        
-        return [
-            'has_website' => false,
-            'url' => null,
-            'status_code' => null,
-            'method' => 'dns_verification'
-        ];
-    }
-
-    /**
-     * Get verification instructions for a domain.
-     */
-    public function getVerificationInstructions(Domain $domain): array
-    {
-        $verification = $this->getDomainVerification($domain);
-        
-        if (!$verification) {
-            return [];
-        }
-
-        $data = $verification->verification_data;
-        $websiteStatus = $this->checkDomainWebsiteStatus($domain->full_domain);
-
-        $instructions = [
-            'verification_code' => $data['verification_code'],
-            'expires_at' => $verification->expires_at,
-            'website_status' => $websiteStatus
-        ];
-
-        // Add file verification if domain has active website
-        if ($websiteStatus['has_website']) {
-            $instructions['file_verification'] = [
-                'method' => 'file_upload',
-                'filename' => 'flippdeal-verification.html',
-                'url' => $websiteStatus['url'] . '/flippdeal-verification.html',
-                'content' => $this->generateVerificationFileContent($data['verification_code']),
-                'instructions' => "Upload the verification file to your website's root directory (public_html, www, or htdocs folder)."
+        if ($existing && $existing->token_expires_at > now()) {
+            return [
+                'success' => true,
+                'verification' => $existing,
+                'instructions' => $this->generateDnsInstructions($existing->token, $domain->full_domain),
             ];
         }
 
-        // Add DNS verification methods
-        $instructions['txt_record'] = [
-            'type' => 'TXT',
-            'name' => $domain->full_domain,
-            'value' => $data['txt_record'],
-            'instructions' => "Add a TXT record to your domain's DNS settings with the above name and value."
-        ];
+        // Generate cryptographically secure token
+        $token = hash('sha256', random_bytes(32));
+        $expiresAt = now()->addMinutes($this->tokenTtl);
 
-        $instructions['cname_record'] = [
-            'type' => 'CNAME',
-            'name' => $data['cname_record'],
-            'value' => $data['cname_target'],
-            'instructions' => "Add a CNAME record to your domain's DNS settings with the above name and value."
-        ];
+        $verification = DomainVerification::create([
+            'domain_id' => $domain->id,
+            'method' => 'dns_txt',
+            'token' => $token,
+            'token_expires_at' => $expiresAt,
+            'status' => 'pending',
+            'evidence' => [
+                'created_by' => $user->id,
+                'created_at' => now()->toISOString(),
+                'ttl_recommendation' => 300, // 5 minutes
+            ],
+        ]);
 
-        return $instructions;
+        // Log the verification creation
+        $this->auditService->log($user, 'domain.verification.created', $domain, [
+            'method' => 'dns_txt',
+            'token_expires_at' => $expiresAt->toISOString(),
+        ]);
+
+        return [
+            'success' => true,
+            'verification' => $verification,
+            'instructions' => $this->generateDnsInstructions($token, $domain->full_domain),
+        ];
     }
 
     /**
-     * Check if domain verification is expired.
+     * Check DNS verification status
      */
-    public function isVerificationExpired(Domain $domain): bool
+    public function checkDnsVerification(DomainVerification $verification): array
     {
-        $verification = $this->getDomainVerification($domain);
-        
-        return $verification && $verification->isExpired();
-    }
-
-    /**
-     * Regenerate verification record for domain.
-     */
-    public function regenerateVerification(Domain $domain): Verification
-    {
-        // Mark existing verification as expired
-        $existingVerification = $this->getDomainVerification($domain);
-        if ($existingVerification) {
-            $existingVerification->update(['status' => 'expired']);
+        if ($verification->status !== 'pending' || $verification->method !== 'dns_txt') {
+            return ['success' => false, 'message' => 'Invalid verification state'];
         }
 
-        // Generate new verification
-        return $this->generateVerificationRecord($domain);
+        if ($verification->token_expires_at < now()) {
+            $verification->update(['status' => 'failed']);
+            return ['success' => false, 'message' => 'Token expired'];
+        }
+
+        if ($verification->attempts >= $this->maxAttempts) {
+            $this->markNeedsAdmin($verification, 'Max attempts reached');
+            return ['success' => false, 'message' => 'Max attempts reached'];
+        }
+
+        try {
+            $domain = $verification->domain;
+            $dnsRecords = $this->dnsResolver->getTxtRecords($domain->full_domain);
+            
+            $verification->increment('attempts');
+            $verification->update(['last_checked_at' => now()]);
+
+            $expectedToken = $verification->token;
+            $found = false;
+
+            foreach ($dnsRecords as $record) {
+                if (trim($record) === $expectedToken) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if ($found) {
+                $this->markVerified($verification, [
+                    'verified_at' => now()->toISOString(),
+                    'dns_records_found' => $dnsRecords,
+                ]);
+                return ['success' => true, 'verified' => true];
+            }
+
+            // Check if we've reached max attempts
+            if ($verification->attempts >= $this->maxAttempts) {
+                $this->markNeedsAdmin($verification, 'Token not found after max attempts');
+                return ['success' => false, 'message' => 'Token not found after max attempts'];
+            }
+
+            return ['success' => true, 'verified' => false, 'attempts' => $verification->attempts];
+
+        } catch (\Exception $e) {
+            Log::error('DNS verification check failed', [
+                'verification_id' => $verification->id,
+                'domain' => $verification->domain->full_domain,
+                'error' => $e->getMessage(),
+            ]);
+
+            $verification->increment('attempts');
+            
+            if ($verification->attempts >= $this->maxAttempts) {
+                $this->markNeedsAdmin($verification, 'DNS lookup failed repeatedly: ' . $e->getMessage());
+            }
+
+            return ['success' => false, 'message' => 'DNS lookup failed'];
+        }
+    }
+
+    /**
+     * Mark verification as verified
+     */
+    public function markVerified(DomainVerification $verification, array $evidence = []): void
+    {
+        $verification->update([
+            'status' => 'verified',
+            'evidence' => array_merge($verification->evidence ?? [], $evidence),
+        ]);
+
+        // Update domain verification status
+        $verification->domain->update(['domain_verified' => true]);
+
+        // Log the verification success
+        $this->auditService->log(
+            $verification->domain->user,
+            'domain.verification.verified',
+            $verification->domain,
+            array_merge($evidence, ['method' => $verification->method])
+        );
+    }
+
+    /**
+     * Mark verification as needing admin review
+     */
+    public function markNeedsAdmin(DomainVerification $verification, string $reason): void
+    {
+        $verification->update([
+            'status' => 'needs_admin',
+            'evidence' => array_merge($verification->evidence ?? [], [
+                'needs_admin_reason' => $reason,
+                'needs_admin_at' => now()->toISOString(),
+            ]),
+        ]);
+
+        // Log the admin review requirement
+        $this->auditService->log(
+            $verification->domain->user,
+            'domain.verification.needs_admin',
+            $verification->domain,
+            ['reason' => $reason, 'method' => $verification->method]
+        );
+
+        // Notify admin (this would dispatch a notification job)
+        // NotificationService::notifyAdmins('verification_needs_review', $verification);
+    }
+
+    /**
+     * Admin approval of verification
+     */
+    public function adminApprove(DomainVerification $verification, User $admin, string $notes = null): void
+    {
+        $verification->update([
+            'status' => 'verified',
+            'evidence' => array_merge($verification->evidence ?? [], [
+                'admin_approved' => true,
+                'approved_by' => $admin->id,
+                'approved_at' => now()->toISOString(),
+                'admin_notes' => $notes,
+            ]),
+        ]);
+
+        // Update domain verification status
+        $verification->domain->update(['domain_verified' => true]);
+
+        // Log the admin approval
+        $this->auditService->log($admin, 'domain.verification.admin_approved', $verification->domain, [
+            'verification_id' => $verification->id,
+            'method' => $verification->method,
+            'notes' => $notes,
+        ]);
+    }
+
+    /**
+     * Admin rejection of verification
+     */
+    public function adminReject(DomainVerification $verification, User $admin, string $reason): void
+    {
+        $verification->update([
+            'status' => 'failed',
+            'evidence' => array_merge($verification->evidence ?? [], [
+                'admin_rejected' => true,
+                'rejected_by' => $admin->id,
+                'rejected_at' => now()->toISOString(),
+                'rejection_reason' => $reason,
+            ]),
+        ]);
+
+        // Log the admin rejection
+        $this->auditService->log($admin, 'domain.verification.admin_rejected', $verification->domain, [
+            'verification_id' => $verification->id,
+            'method' => $verification->method,
+            'reason' => $reason,
+        ]);
+    }
+
+    /**
+     * Check WHOIS verification
+     */
+    public function checkWhoisVerification(Domain $domain, User $user): array
+    {
+        try {
+            $whoisData = $this->dnsResolver->getWhoisData($domain->full_domain);
+            
+            if (!$whoisData) {
+                return ['success' => false, 'message' => 'WHOIS data not available'];
+            }
+
+            $evidence = [
+                'whois_data' => $whoisData,
+                'checked_at' => now()->toISOString(),
+                'flags' => $this->checkWhoisFlags($domain, $user, $whoisData),
+            ];
+
+            $verification = DomainVerification::create([
+                'domain_id' => $domain->id,
+                'method' => 'whois',
+                'status' => 'verified',
+                'evidence' => $evidence,
+                'raw_whois' => json_encode($whoisData),
+            ]);
+
+            // Update domain verification status
+            $domain->update(['domain_verified' => true]);
+
+            // Log the verification
+            $this->auditService->log($user, 'domain.verification.verified', $domain, [
+                'method' => 'whois',
+                'flags' => $evidence['flags'],
+            ]);
+
+            return ['success' => true, 'verification' => $verification, 'evidence' => $evidence];
+
+        } catch (\Exception $e) {
+            Log::error('WHOIS verification failed', [
+                'domain_id' => $domain->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => 'WHOIS verification failed'];
+        }
+    }
+
+    /**
+     * Check for WHOIS flags and mismatches
+     */
+    protected function checkWhoisFlags(Domain $domain, User $user, array $whoisData): array
+    {
+        $flags = [];
+
+        // Check email mismatch
+        if (isset($whoisData['email']) && $user->email !== $whoisData['email']) {
+            $flags[] = 'email_mismatch';
+        }
+
+        // Check PayPal email mismatch
+        if (isset($whoisData['email']) && $user->paypal_email && $user->paypal_email !== $whoisData['email']) {
+            $flags[] = 'paypal_email_mismatch';
+        }
+
+        // Check registrant name mismatch
+        if (isset($whoisData['registrant_name']) && $user->name !== $whoisData['registrant_name']) {
+            $flags[] = 'name_mismatch';
+        }
+
+        return $flags;
+    }
+
+    /**
+     * Generate DNS instructions for the user
+     */
+    protected function generateDnsInstructions(string $token, string $domain): array
+    {
+        return [
+            'dns_record_type' => 'TXT',
+            'dns_record_name' => $domain,
+            'dns_record_value' => $token,
+            'ttl_recommendation' => 300,
+            'instructions' => [
+                '1. Log into your domain registrar or DNS provider',
+                '2. Navigate to DNS management',
+                '3. Add a new TXT record with the following details:',
+                '4. Name/Host: ' . $domain,
+                '5. Type: TXT',
+                '6. Value: ' . $token,
+                '7. TTL: 300 seconds (5 minutes)',
+                '8. Save the record and wait for propagation',
+            ],
+        ];
+    }
+
+    /**
+     * Rate limit verification attempts
+     */
+    public function isRateLimited(Domain $domain, User $user): bool
+    {
+        $key = "verification_attempts:domain:{$domain->id}:user:{$user->id}";
+        $attempts = Cache::get($key, 0);
+        
+        $maxAttemptsPerHour = config('verification.rate_limit_per_hour', 6);
+        
+        if ($attempts >= $maxAttemptsPerHour) {
+            return true;
+        }
+
+        Cache::put($key, $attempts + 1, 3600); // 1 hour
+        return false;
     }
 }

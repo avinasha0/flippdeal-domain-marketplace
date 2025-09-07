@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DomainApiController;
 use App\Http\Controllers\Api\UserApiController;
+use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,4 +71,27 @@ Route::prefix('v1/admin')->middleware(['auth:sanctum', 'admin'])->group(function
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
+});
+
+// Messaging API routes
+Route::middleware('auth:sanctum')->prefix('messages')->group(function () {
+    Route::post('/', [MessageController::class, 'store']);
+    Route::get('/conversations/{userId}', [MessageController::class, 'conversation']);
+    Route::patch('/{message}/read', [MessageController::class, 'markAsRead']);
+    Route::patch('/mark-all-read', [MessageController::class, 'markAllAsRead']);
+    Route::get('/unread-count', [MessageController::class, 'unreadCount']);
+    Route::get('/conversations', [MessageController::class, 'conversations']);
+    Route::delete('/{message}', [MessageController::class, 'destroy']);
+});
+
+// Notification API routes
+Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+    Route::get('/', [NotificationController::class, 'index']);
+    Route::get('/recent', [NotificationController::class, 'recent']);
+    Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::patch('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/{id}', [NotificationController::class, 'destroy']);
+    Route::delete('/', [NotificationController::class, 'destroyAll']);
+    Route::get('/statistics', [NotificationController::class, 'statistics']);
 });

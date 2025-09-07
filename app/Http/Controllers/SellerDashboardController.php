@@ -7,6 +7,7 @@ use App\Models\Bid;
 use App\Models\Offer;
 use App\Models\Conversation;
 use App\Models\Notification;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -28,6 +29,8 @@ class SellerDashboardController extends Controller
             'total_listings' => $domains->count(),
             'active_listings' => $domains->where('status', 'active')->count(),
             'draft_listings' => $domains->where('status', 'draft')->count(),
+            'sold_listings' => $domains->where('status', 'sold')->count(),
+            'inactive_listings' => $domains->where('status', 'inactive')->count(),
             'total_bids' => $domains->sum(function ($domain) {
                 return $domain->bids->count();
             }),
@@ -35,7 +38,8 @@ class SellerDashboardController extends Controller
                 return $domain->offers->count();
             }),
             'total_messages' => $user->sellerConversations()->sum('seller_unread_count'),
-            'total_sales' => $domains->where('status', 'sold')->sum('asking_price'),
+            'total_sales' => Transaction::where('seller_id', $user->id)->where('escrow_state', 'released')->sum('amount'),
+            'sold_domains' => Transaction::where('seller_id', $user->id)->where('escrow_state', 'released')->count(),
         ];
 
         // Get data based on selected tab
@@ -48,6 +52,10 @@ class SellerDashboardController extends Controller
                 
             case 'drafts':
                 $data = $domains->where('status', 'draft')->sortByDesc('created_at');
+                break;
+                
+            case 'sold':
+                $data = $domains->where('status', 'sold')->sortByDesc('updated_at');
                 break;
                 
             case 'bids':
@@ -91,6 +99,8 @@ class SellerDashboardController extends Controller
             'total_listings' => $domains->count(),
             'active_listings' => $domains->where('status', 'active')->count(),
             'draft_listings' => $domains->where('status', 'draft')->count(),
+            'sold_listings' => $domains->where('status', 'sold')->count(),
+            'inactive_listings' => $domains->where('status', 'inactive')->count(),
             'total_bids' => $domains->sum(function ($domain) {
                 return $domain->bids->count();
             }),
@@ -98,7 +108,8 @@ class SellerDashboardController extends Controller
                 return $domain->offers->count();
             }),
             'total_messages' => $user->sellerConversations()->sum('seller_unread_count'),
-            'total_sales' => $domains->where('status', 'sold')->sum('asking_price'),
+            'total_sales' => Transaction::where('seller_id', $user->id)->where('escrow_state', 'released')->sum('amount'),
+            'sold_domains' => Transaction::where('seller_id', $user->id)->where('escrow_state', 'released')->count(),
         ];
 
         return response()->json($stats);

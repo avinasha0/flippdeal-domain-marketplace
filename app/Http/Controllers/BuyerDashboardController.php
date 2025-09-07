@@ -29,7 +29,7 @@ class BuyerDashboardController extends Controller
             'accepted_offers' => $user->offers()->where('status', 'accepted')->count(),
             'watchlist_count' => $user->watchlist_count,
             'total_spent' => $user->bids()->winning()->sum('amount') + 
-                           $user->offers()->where('status', 'accepted')->sum('amount'),
+                           $user->offers()->where('status', 'accepted')->sum('offer_amount'),
         ];
 
         // Get data based on selected tab
@@ -39,28 +39,28 @@ class BuyerDashboardController extends Controller
             case 'won':
                 $data = $user->bids()
                     ->winning()
-                    ->with(['domain.user', 'domain.category'])
+                    ->with(['domain.user'])
                     ->orderBy('created_at', 'desc')
                     ->paginate(20);
                 break;
                 
             case 'bids':
                 $data = $user->bids()
-                    ->with(['domain.user', 'domain.category'])
+                    ->with(['domain.user'])
                     ->orderBy('created_at', 'desc')
                     ->paginate(20);
                 break;
                 
             case 'offers':
                 $data = $user->offers()
-                    ->with(['domain.user', 'domain.category'])
+                    ->with(['domain.user'])
                     ->orderBy('created_at', 'desc')
                     ->paginate(20);
                 break;
                 
             case 'watching':
                 $data = $user->watchlist()
-                    ->with(['domain.user', 'domain.category'])
+                    ->with(['domain.user'])
                     ->orderBy('created_at', 'desc')
                     ->paginate(20);
                 break;
@@ -91,7 +91,7 @@ class BuyerDashboardController extends Controller
             'accepted_offers' => $user->offers()->where('status', 'accepted')->count(),
             'watchlist_count' => $user->watchlist_count,
             'total_spent' => $user->bids()->winning()->sum('amount') + 
-                           $user->offers()->where('status', 'accepted')->sum('amount'),
+                           $user->offers()->where('status', 'accepted')->sum('offer_amount'),
         ];
 
         return response()->json($stats);

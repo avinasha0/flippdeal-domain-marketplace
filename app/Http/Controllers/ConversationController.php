@@ -31,9 +31,38 @@ class ConversationController extends Controller
     /**
      * Show a specific conversation.
      */
-    public function show(Conversation $conversation)
+    public function show(Request $request, $conversation = null)
     {
         $user = Auth::user();
+        
+        // If conversation parameter is actually a domain ID (from domain page)
+        if (is_numeric($conversation) && $request->has('domain_id')) {
+            $domainId = $request->get('domain_id');
+            $domain = \App\Models\Domain::findOrFail($domainId);
+            
+            // Check if user is trying to chat with themselves
+            if ($domain->user_id === $user->id) {
+                return redirect()->back()->with('error', 'You cannot start a conversation with yourself.');
+            }
+            
+            // Find or create conversation between current user and domain owner
+            $conversation = Conversation::firstOrCreate(
+                [
+                    'seller_id' => $domain->user_id,
+                    'buyer_id' => $user->id,
+                    'domain_id' => $domain->id
+                ],
+                [
+                    'subject' => 'Discussion about ' . $domain->full_domain,
+                    'last_message_at' => now()
+                ]
+            );
+        }
+        
+        // If conversation is still null or not found, treat as regular conversation
+        if (!$conversation || !($conversation instanceof Conversation)) {
+            $conversation = Conversation::findOrFail($conversation);
+        }
         
         // Check if user is part of this conversation
         if ($conversation->buyer_id !== $user->id && $conversation->seller_id !== $user->id) {
@@ -42,6 +71,19 @@ class ConversationController extends Controller
 
         // Mark conversation as read for this user
         $conversation->markAsReadForUser($user->id);
+        
+        // Reset unread count for this user
+        if ($conversation->buyer_id === $user->id) {
+            $conversation->update(['buyer_unread_count' => 0]);
+        } else {
+            $conversation->update(['seller_unread_count' => 0]);
+        }
+        
+        // Also mark all messages in this conversation as read for this user
+        Message::where('conversation_id', $conversation->id)
+            ->where('to_user_id', $user->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
 
         $conversation->load(['domain', 'buyer', 'seller', 'messages.sender']);
         

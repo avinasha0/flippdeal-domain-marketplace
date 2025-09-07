@@ -31,9 +31,9 @@
         <!-- Conversation Header -->
         <div class="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-6 mb-6">
             <div class="flex items-center space-x-4">
-                <img class="h-16 w-16 rounded-full object-cover" 
-                     src="{{ $otherUser->avatar_url }}" 
-                     alt="{{ $otherUser->name }}">
+                <div class="h-16 w-16 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-2xl">
+                    {{ substr($otherUser->name, 0, 1) }}
+                </div>
                 <div class="flex-1">
                     <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                         {{ $otherUser->name }}
@@ -157,6 +157,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 addMessageToUI(data.message);
                 messageInput.value = '';
                 scrollToBottom();
+                
+                // Dispatch custom event for notification bell
+                window.dispatchEvent(new CustomEvent('message-received', {
+                    detail: {
+                        id: data.message.id,
+                        sender: data.message.sender.name,
+                        message: data.message.message,
+                        conversation_id: {{ $conversation->id }},
+                        domain_id: {{ $conversation->domain_id }}
+                    }
+                }));
             } else {
                 alert('Failed to send message. Please try again.');
             }
@@ -190,9 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
         messageDiv.innerHTML = `
             <div class="max-w-xs lg:max-w-md">
                 <div class="flex items-end space-x-2 flex-row-reverse space-x-reverse">
-                    <img class="h-8 w-8 rounded-full object-cover flex-shrink-0" 
-                         src="${message.sender.avatar_url}" 
-                         alt="${message.sender.name}">
+                    <div class="h-8 w-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                        ${message.sender.name.charAt(0)}
+                    </div>
                     <div class="flex flex-col items-end">
                         <div class="px-4 py-2 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 text-white">
                             <p class="text-sm">${message.message}</p>

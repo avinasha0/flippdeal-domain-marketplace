@@ -193,11 +193,43 @@ class Domain extends Model
     }
 
     /**
+     * Get the daily metrics for the domain.
+     */
+    public function dailyMetrics(): HasMany
+    {
+        return $this->hasMany(DomainDailyMetric::class);
+    }
+
+    /**
      * Get the current winning bid for this domain.
      */
     public function winningBid(): HasMany
     {
         return $this->hasMany(Bid::class)->winning();
+    }
+
+    /**
+     * Get transactions for this domain.
+     */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Get domain transfers for this domain.
+     */
+    public function transfers(): HasMany
+    {
+        return $this->hasMany(DomainTransfer::class);
+    }
+
+    /**
+     * Get the latest transfer for this domain.
+     */
+    public function latestTransfer(): HasMany
+    {
+        return $this->hasMany(DomainTransfer::class)->latest();
     }
 
     /**
@@ -323,11 +355,14 @@ class Domain extends Model
     }
 
     /**
-     * Increment view count.
+     * Increment view count (only for active domains).
      */
     public function incrementViewCount(): void
     {
-        $this->increment('view_count');
+        // Only increment view count for active domains
+        if ($this->status === 'active') {
+            $this->increment('view_count');
+        }
     }
 
     /**

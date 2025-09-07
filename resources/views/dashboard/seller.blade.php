@@ -48,15 +48,15 @@
             <div class="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0">
-                        <div class="h-12 w-12 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                        <div class="h-12 w-12 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
                             <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Bids</p>
-                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['total_bids'] }}</p>
+                        <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Sold Listings</p>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ $stats['sold_listings'] }}</p>
                     </div>
                 </div>
             </div>
@@ -90,6 +90,10 @@
                        class="py-4 px-1 border-b-2 font-medium text-sm {{ $tab === 'drafts' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
                         Drafts
                     </a>
+                    <a href="{{ route('seller.dashboard', ['tab' => 'sold']) }}" 
+                       class="py-4 px-1 border-b-2 font-medium text-sm {{ $tab === 'sold' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                        Sold Domains
+                    </a>
                     <a href="{{ route('seller.dashboard', ['tab' => 'bids']) }}" 
                        class="py-4 px-1 border-b-2 font-medium text-sm {{ $tab === 'bids' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
                         Bids
@@ -113,6 +117,9 @@
                         @break
                     @case('drafts')
                         @include('dashboard.partials.seller-drafts', ['domains' => $data])
+                        @break
+                    @case('sold')
+                        @include('dashboard.partials.seller-sold', ['domains' => $data])
                         @break
                     @case('bids')
                         @include('dashboard.partials.seller-bids', ['bids' => $data])

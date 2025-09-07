@@ -32,9 +32,9 @@
                                     @php
                                         $otherUser = $conversation->buyer_id === auth()->id() ? $conversation->seller : $conversation->buyer;
                                     @endphp
-                                    <img class="h-12 w-12 rounded-full object-cover" 
-                                         src="{{ $otherUser->avatar_url }}" 
-                                         alt="{{ $otherUser->name }}">
+                                    <div class="h-12 w-12 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold text-lg">
+                                        {{ substr($otherUser->name, 0, 1) }}
+                                    </div>
                                 </div>
 
                                 <!-- Conversation Info -->
@@ -60,9 +60,9 @@
                                         </div>
                                     </div>
                                     
-                                    @if($conversation->latestMessage->first())
+                                    @if($conversation->latestMessage)
                                         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 truncate">
-                                            {{ $conversation->latestMessage->first()->message }}
+                                            {{ $conversation->latestMessage->message }}
                                         </p>
                                     @endif
                                 </div>

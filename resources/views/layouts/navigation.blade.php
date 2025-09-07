@@ -49,7 +49,7 @@
                             </svg>
                             Messages
                             @if(auth()->check() && auth()->user()->unread_conversation_count > 0)
-                                <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                <span class="ml-1 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold text-white bg-red-600 min-w-[20px] h-5 shadow-lg border border-red-700">
                                     {{ auth()->user()->unread_conversation_count }}
                                 </span>
                             @endif
@@ -68,38 +68,7 @@
             @auth
                 <div class="hidden sm:flex sm:items-center sm:ms-6 space-x-4">
                     <!-- Notifications Dropdown -->
-                    <div class="relative" x-data="{ open: false }">
-                        <button @click="open = ! open" class="relative inline-flex items-center p-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.828 7l2.586 2.586a2 2 0 002.828 0L12.828 7H4.828z"></path>
-                            </svg>
-                            @if(auth()->check() && auth()->user()->unread_notification_count > 0)
-                                <span class="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                                    {{ auth()->user()->unread_notification_count }}
-                                </span>
-                            @endif
-                        </button>
-
-                        <div x-show="open" @click.away="open = false" 
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="transform opacity-0 scale-95"
-                             x-transition:enter-end="transform opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="transform opacity-100 scale-100"
-                             x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-50 border border-gray-200 dark:border-gray-700">
-                            <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                                <h3 class="text-sm font-medium text-gray-900 dark:text-white">Notifications</h3>
-                                <a href="{{ route('notifications.index') }}" class="text-xs text-purple-600 dark:text-purple-400 hover:underline">View all</a>
-                            </div>
-                            <div class="max-h-64 overflow-y-auto">
-                                <!-- Notifications will be loaded here via AJAX -->
-                                <div class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    Loading notifications...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @include('components.notification-bell')
 
                     <!-- Settings Dropdown -->
                     <div class="relative" x-data="{ open: false }">

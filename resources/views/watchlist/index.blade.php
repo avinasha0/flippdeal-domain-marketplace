@@ -62,7 +62,7 @@
                                     <div class="flex items-center justify-between">
                                         <span class="text-sm text-gray-600 dark:text-gray-400">Category</span>
                                         <span class="text-sm text-gray-900 dark:text-white">
-                                            {{ $item->domain->category->name }}
+                                            {{ ucfirst($item->domain->category) }}
                                         </span>
                                     </div>
                                 @endif

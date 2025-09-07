@@ -88,14 +88,27 @@ class MessageController extends Controller
 
         // Check if user is part of this conversation
         if ($conversation->buyer_id !== $user->id && $conversation->seller_id !== $user->id) {
-            abort(403, 'Unauthorized access to conversation.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to conversation.'
+            ], 403);
         }
+
+        // Determine the other user
+        $otherUserId = $conversation->buyer_id === $user->id ? $conversation->seller_id : $conversation->buyer_id;
 
         // Create the message
         $message = Message::create([
             'conversation_id' => $conversation->id,
+            'from_user_id' => $user->id,
+            'to_user_id' => $otherUserId,
             'sender_id' => $user->id,
+            'receiver_id' => $otherUserId,
+            'domain_id' => $conversation->domain_id,
+            'body' => $request->message,
             'message' => $request->message,
+            'subject' => 'Message in conversation',
+            'type' => 'general'
         ]);
 
         // Update conversation
@@ -103,24 +116,35 @@ class MessageController extends Controller
             'last_message_at' => now(),
         ]);
 
-        // Increment unread count for the other user
-        $conversation->incrementUnreadForUser(
-            $conversation->buyer_id === $user->id ? $conversation->seller_id : $conversation->buyer_id
-        );
+        // Increment unread count for the recipient
+        if ($conversation->buyer_id === $user->id) {
+            $conversation->increment('seller_unread_count');
+        } else {
+            $conversation->increment('buyer_unread_count');
+        }
 
         // Create notification for the other user
-        $otherUserId = $conversation->buyer_id === $user->id ? $conversation->seller_id : $conversation->buyer_id;
-        \App\Models\Notification::createNotification(
-            $otherUserId,
-            'message_received',
-            'New Message Received',
-            "You have received a new message about {$conversation->domain->full_domain}",
-            ['conversation_id' => $conversation->id, 'domain_id' => $conversation->domain_id]
-        );
+        $otherUser = User::find($otherUserId);
+        if ($otherUser) {
+            $otherUser->notify(new \App\Notifications\NewMessageReceived($message));
+        }
+
+        // Dispatch event for real-time updates
+        event(new \App\Events\MessageSent($message));
 
         return response()->json([
             'success' => true,
-            'message' => $message->load('sender'),
+            'message' => [
+                'id' => $message->id,
+                'body' => $message->body,
+                'message' => $message->message,
+                'created_at' => $message->created_at,
+                'sender' => [
+                    'id' => $message->fromUser->id,
+                    'name' => $message->fromUser->name,
+                    'email' => $message->fromUser->email
+                ]
+            ]
         ]);
     }
 

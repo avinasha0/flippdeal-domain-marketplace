@@ -17,7 +17,7 @@ class WatchlistController extends Controller
         $user = Auth::user();
         
         $watchlist = $user->watchlist()
-            ->with(['domain.user', 'domain.category'])
+            ->with(['domain.user'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 

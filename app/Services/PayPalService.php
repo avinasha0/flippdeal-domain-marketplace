@@ -317,4 +317,153 @@ class PayPalService
             }
         }
     }
+
+    /**
+     * Create a payout to seller.
+     */
+    public function createPayout(array $data): array
+    {
+        $accessToken = $this->getAccessToken();
+        if (!$accessToken) {
+            throw new \Exception('Failed to get PayPal access token');
+        }
+
+        $payoutData = [
+            'sender_batch_header' => [
+                'sender_batch_id' => 'payout_' . time() . '_' . uniqid(),
+                'email_subject' => 'You have a payout from FlippDeal!',
+                'email_message' => 'You have received a payout for your domain sale on FlippDeal.',
+            ],
+            'items' => [
+                [
+                    'recipient_type' => 'EMAIL',
+                    'amount' => [
+                        'value' => number_format($data['amount'], 2, '.', ''),
+                        'currency' => $data['currency'] ?? 'USD',
+                    ],
+                    'receiver' => $data['email'],
+                    'note' => $data['note'] ?? 'Domain sale payout',
+                    'sender_item_id' => 'item_' . time(),
+                ],
+            ],
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl . '/v1/payments/payouts', $payoutData);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                Log::info('PayPal payout created successfully', [
+                    'payout_id' => $result['batch_header']['payout_batch_id'] ?? null,
+                    'status' => $result['batch_header']['batch_status'] ?? null,
+                ]);
+
+                return [
+                    'payout_id' => $result['batch_header']['payout_batch_id'] ?? null,
+                    'status' => $result['batch_header']['batch_status'] ?? 'PENDING',
+                    'response' => $result,
+                ];
+            }
+
+            Log::error('PayPal payout creation failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new \Exception('PayPal payout creation failed: ' . $response->body());
+
+        } catch (\Exception $e) {
+            Log::error('PayPal payout creation error', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Create a refund for a transaction.
+     */
+    public function createRefund(array $data): array
+    {
+        $accessToken = $this->getAccessToken();
+        if (!$accessToken) {
+            throw new \Exception('Failed to get PayPal access token');
+        }
+
+        $refundData = [
+            'amount' => [
+                'total' => number_format($data['amount'], 2, '.', ''),
+                'currency' => $data['currency'] ?? 'USD',
+            ],
+            'reason' => $data['reason'] ?? 'Domain transfer issue',
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl . '/v1/payments/sale/' . $data['transaction_id'] . '/refund', $refundData);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                Log::info('PayPal refund created successfully', [
+                    'refund_id' => $result['id'] ?? null,
+                    'status' => $result['state'] ?? null,
+                ]);
+
+                return [
+                    'refund_id' => $result['id'] ?? null,
+                    'status' => $result['state'] ?? 'PENDING',
+                    'response' => $result,
+                ];
+            }
+
+            Log::error('PayPal refund creation failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            throw new \Exception('PayPal refund creation failed: ' . $response->body());
+
+        } catch (\Exception $e) {
+            Log::error('PayPal refund creation error', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Get payout status.
+     */
+    public function getPayoutStatus(string $payoutId): ?array
+    {
+        $accessToken = $this->getAccessToken();
+        if (!$accessToken) {
+            return null;
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $accessToken,
+            ])->get($this->baseUrl . '/v1/payments/payouts/' . $payoutId);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error('PayPal payout status check failed', [
+                'payout_id' => $payoutId,
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
+    }
 }

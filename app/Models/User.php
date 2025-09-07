@@ -246,6 +246,55 @@ class User extends Authenticatable
     }
 
     /**
+     * Get transactions where this user is the buyer.
+     */
+    public function buyerTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'buyer_id');
+    }
+
+    /**
+     * Get transactions where this user is the seller.
+     */
+    public function sellerTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'seller_id');
+    }
+
+    /**
+     * Get domain transfers initiated by this user.
+     */
+    public function initiatedTransfers(): HasMany
+    {
+        return $this->hasMany(DomainTransfer::class, 'from_user_id');
+    }
+
+    /**
+     * Get domain transfers received by this user.
+     */
+    public function receivedTransfers(): HasMany
+    {
+        return $this->hasMany(DomainTransfer::class, 'to_user_id');
+    }
+
+    /**
+     * Get domain transfers verified by this admin.
+     */
+    public function verifiedTransfers(): HasMany
+    {
+        return $this->hasMany(DomainTransfer::class, 'verified_by_admin_id');
+    }
+
+    /**
+     * Get transactions released by this admin.
+     */
+    public function releasedTransactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'escrow_release_by_admin_id');
+    }
+
+
+    /**
      * Check if user has a specific permission.
      */
     public function hasPermission(string $permission): bool
@@ -364,6 +413,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the KYC requests for the user.
+     */
+    public function kycRequests(): HasMany
+    {
+        return $this->hasMany(KycRequest::class);
+    }
+
+    /**
+     * Get the AML flags for the user.
+     */
+    public function amlFlags(): HasMany
+    {
+        return $this->hasMany(AmlFlag::class);
+    }
+
+    /**
      * Check if user is watching a domain.
      */
     public function isWatching(int $domainId): bool
@@ -468,6 +533,7 @@ class User extends Authenticatable
     {
         return $this->verifications()->ofType($type)->latest()->first();
     }
+
 
     /**
      * Mark PayPal email as verified.
