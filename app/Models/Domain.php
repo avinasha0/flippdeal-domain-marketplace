@@ -225,6 +225,14 @@ class Domain extends Model
     }
 
     /**
+     * Get the domain verifications for the domain.
+     */
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(DomainVerification::class);
+    }
+
+    /**
      * Get the latest transfer for this domain.
      */
     public function latestTransfer(): HasMany

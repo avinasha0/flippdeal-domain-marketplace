@@ -31,6 +31,11 @@ class Transaction extends Model
         'kyc_approved',
         'kyc_request_id',
         'kyc_approved_at',
+        'seller_checklist',
+        'buyer_checklist',
+        'transfer_evidence',
+        'transfer_initiated_at',
+        'transfer_completed_at',
     ];
 
     protected $casts = [
@@ -42,6 +47,11 @@ class Transaction extends Model
         'kyc_required' => 'boolean',
         'kyc_approved' => 'boolean',
         'kyc_approved_at' => 'datetime',
+        'seller_checklist' => 'array',
+        'buyer_checklist' => 'array',
+        'transfer_evidence' => 'array',
+        'transfer_initiated_at' => 'datetime',
+        'transfer_completed_at' => 'datetime',
     ];
 
     // Escrow states

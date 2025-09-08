@@ -82,10 +82,10 @@
 
     <!-- Secondary Stats -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <!-- Pending Domains -->
+        <!-- Draft Domains -->
         <x-dashboard.card 
-            title="Pending Approval" 
-            value="{{ $stats['pending_domains'] ?? 0 }}"
+            title="Draft Listings" 
+            value="{{ $stats['draft_domains'] ?? 0 }}"
             icon='<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
             color="yellow"
         />
@@ -139,9 +139,13 @@
                                     <div class="ml-4">
                                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $domain->full_domain ?? 'example.com' }}</p>
                                         <p class="text-sm text-gray-500 dark:text-gray-400">
-                                            @if($domain->status ?? 'active' === 'active')
+                                            @if(($domain->status ?? 'active') === 'active')
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                                                     Active
+                                                </span>
+                                            @elseif($domain->status === 'sold')
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                    Sold
                                                 </span>
                                             @elseif($domain->status === 'pending')
                                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
@@ -286,6 +290,13 @@
                                                     </button>
                                                 </form>
                                             @endif
+                                        @elseif($domain->status === 'sold')
+                                            <span class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded cursor-not-allowed">
+                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Sold
+                                            </span>
                                         @elseif($domain->status === 'active')
                                             @if(!$domain->hasPendingActions())
                                                 <form method="POST" action="{{ route('domains.change-to-draft', $domain) }}" class="inline" onsubmit="return confirm('Are you sure you want to change this domain to draft status? This will make it invisible to buyers.')">

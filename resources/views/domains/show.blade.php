@@ -19,9 +19,12 @@
                     </svg>
                 </div>
             </div>
-            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight font-mono">
-                {{ $domain->full_domain }}
-            </h1>
+            <div class="flex flex-col items-center space-y-4">
+                <h1 class="text-4xl md:text-6xl font-bold leading-tight font-mono">
+                    {{ $domain->full_domain }}
+                </h1>
+                <x-verified-badge :domain="$domain" :show-tooltip="true" size="lg" />
+            </div>
             <p class="text-xl md:text-2xl mb-8 text-blue-100 max-w-4xl mx-auto">
                 {{ $domain->description ?: 'Premium domain available for purchase' }}
             </p>
@@ -711,6 +714,15 @@
                             </form>
                         </div>
 
+                        <!-- Verification Stepper (for domain owner) -->
+                        @auth
+                            @if(auth()->id() === $domain->user_id && $domain->status !== 'active')
+                                <div class="mb-8">
+                                    <x-verification-stepper :domain="$domain" :show-actions="true" />
+                                </div>
+                            @endif
+                        @endauth
+
                         <!-- Chat with Seller -->
                         @auth
                             @if(auth()->id() !== $domain->user_id)
@@ -743,6 +755,13 @@
                                 </a>
                             </div>
                         @endauth
+
+                        <!-- Seller Trust Card -->
+                        @if($domain->user)
+                            <div class="mb-8">
+                                <x-trust-card :user="$domain->user" :show-full-card="true" />
+                            </div>
+                        @endif
 
                         <!-- Make an Offer Option -->
                         @if($domain->acceptsOffers())
@@ -882,6 +901,13 @@
                     </a>
                 </div>
             @endauth
+
+            <!-- Auction Countdown (if auction is active) -->
+            @if($domain->hasBidding() && $domain->isReadyForBidding() && $domain->auction_status === 'active')
+                <div class="mb-8">
+                    <x-auction-countdown :domain="$domain" :show-full-info="true" />
+                </div>
+            @endif
 
             <!-- Watchlist Button -->
             @auth

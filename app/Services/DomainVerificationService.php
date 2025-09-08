@@ -6,6 +6,7 @@ use App\Models\Domain;
 use App\Models\DomainVerification;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Contracts\DnsResolverInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -24,6 +25,81 @@ class DomainVerificationService
         $this->dnsResolver = $dnsResolver;
         $this->tokenTtl = config('verification.token_ttl_minutes', 120);
         $this->maxAttempts = config('verification.max_attempts', 12);
+    }
+
+    /**
+     * Get verification instructions for a domain
+     */
+    public function getVerificationInstructions(Domain $domain): array
+    {
+        // Check if domain already has a verification record
+        $verification = DomainVerification::where('domain_id', $domain->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($verification) {
+            $dnsInstructions = $this->generateDnsInstructions($verification->token, $domain->full_domain);
+            return [
+                'method' => $verification->method,
+                'status' => $verification->status,
+                'token' => $verification->token,
+                'verification_code' => $verification->token,
+                'expires_at' => $verification->token_expires_at,
+                'created_at' => $verification->created_at,
+                'website_status' => [
+                    'has_website' => true, // Enable website verification by default
+                    'url' => 'https://' . $domain->full_domain,
+                ],
+                'file_verification' => [
+                    'filename' => 'verification.txt',
+                    'url' => 'https://' . $domain->full_domain . '/verification.txt',
+                    'content' => $verification->token,
+                    'instructions' => 'Upload a file named verification.txt to your website root with the verification code.',
+                ],
+                'txt_record' => [
+                    'type' => $dnsInstructions['dns_record_type'],
+                    'name' => $dnsInstructions['dns_record_name'],
+                    'value' => $dnsInstructions['dns_record_value'],
+                    'instructions' => implode("\n", $dnsInstructions['instructions']),
+                ],
+                'cname_record' => [
+                    'type' => 'CNAME',
+                    'name' => 'verify.' . $domain->full_domain,
+                    'value' => 'verification.flippdeal.com',
+                    'instructions' => 'Alternative verification method using CNAME record. Point verify.yourdomain.com to verification.flippdeal.com',
+                ],
+            ];
+        }
+
+        // Return default instructions for creating new verification
+        return [
+            'method' => 'dns_txt',
+            'status' => 'not_started',
+            'verification_code' => 'Click "Generate Verification" to get your code',
+            'expires_at' => null,
+            'website_status' => [
+                'has_website' => true, // Enable website verification by default
+                'url' => 'https://' . $domain->full_domain,
+            ],
+            'file_verification' => [
+                'filename' => 'verification.txt',
+                'url' => 'https://' . $domain->full_domain . '/verification.txt',
+                'content' => 'Click "Generate Verification" to get your verification code',
+                'instructions' => 'Upload a file named verification.txt to your website root with the verification code.',
+            ],
+            'txt_record' => [
+                'type' => 'TXT',
+                'name' => $domain->full_domain,
+                'value' => 'Click "Generate Verification" to get your token',
+                'instructions' => 'Click the "Generate Verification" button below to create a verification token and get detailed instructions.',
+            ],
+            'cname_record' => [
+                'type' => 'CNAME',
+                'name' => 'verify.' . $domain->full_domain,
+                'value' => 'verification.flippdeal.com',
+                'instructions' => 'Alternative verification method using CNAME record. Point verify.yourdomain.com to verification.flippdeal.com',
+            ],
+        ];
     }
 
     /**
@@ -333,6 +409,32 @@ class DomainVerificationService
                 '8. Save the record and wait for propagation',
             ],
         ];
+    }
+
+    /**
+     * Verify domain using file method
+     */
+    public function verifyDomainByFile(Domain $domain): bool
+    {
+        try {
+            $instructions = $this->getVerificationInstructions($domain);
+            $fileUrl = $instructions['file_verification']['url'];
+            
+            // Make HTTP request to check if file exists and contains correct content
+            $response = file_get_contents($fileUrl);
+            
+            if ($response === false) {
+                return false;
+            }
+            
+            // Check if the file contains the verification code
+            $expectedContent = $instructions['file_verification']['content'];
+            return trim($response) === trim($expectedContent);
+            
+        } catch (\Exception $e) {
+            Log::error('File verification failed for domain ' . $domain->full_domain . ': ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

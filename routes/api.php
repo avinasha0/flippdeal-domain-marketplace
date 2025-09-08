@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\DomainApiController;
 use App\Http\Controllers\Api\UserApiController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\VerificationController;
+use App\Http\Controllers\Api\ChecklistController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +54,18 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/domains', [DomainApiController::class, 'store']);
     Route::put('/domains/{domain}', [DomainApiController::class, 'update']);
     Route::delete('/domains/{domain}', [DomainApiController::class, 'destroy']);
+    
+    // Verification routes
+    Route::get('/domains/{domain}/verification-status', [VerificationController::class, 'getStatus']);
+    Route::post('/domains/{domain}/verification/retry', [VerificationController::class, 'retry']);
+    Route::post('/domains/{domain}/verification', [VerificationController::class, 'create']);
+    Route::post('/domains/{domain}/publish', [DomainApiController::class, 'publish']);
+    
+    // Checklist routes
+    Route::get('/transactions/{transaction}/checklist', [ChecklistController::class, 'getChecklist']);
+    Route::post('/transactions/{transaction}/checklist/mark', [ChecklistController::class, 'markItem']);
+    Route::post('/transactions/{transaction}/evidence', [ChecklistController::class, 'uploadEvidence']);
+    Route::get('/transactions/{transaction}/evidence/{item}', [ChecklistController::class, 'getEvidence']);
 });
 
 // Admin API routes

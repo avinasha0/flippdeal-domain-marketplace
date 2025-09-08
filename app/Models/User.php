@@ -47,6 +47,11 @@ class User extends Authenticatable
         'account_status',
         'suspended_at',
         'suspension_reason',
+        // Seller rating fields
+        'seller_rating_avg',
+        'seller_rating_count',
+        'total_sales_count',
+        'avg_response_time_hours',
         // Additional profile fields
         'company_name',
         'website',
@@ -88,7 +93,9 @@ class User extends Authenticatable
             // Account status casts
             'suspended_at' => 'datetime',
             // Additional profile field casts
-            'social_links' => 'array'
+            'social_links' => 'array',
+            // Seller rating casts
+            'seller_rating_avg' => 'decimal:2'
         ];
     }
 
@@ -610,5 +617,62 @@ class User extends Authenticatable
             return null;
         }
         return asset('storage/' . $this->government_id_path);
+    }
+
+    /**
+     * Get seller rating display
+     */
+    public function getSellerRatingDisplayAttribute(): string
+    {
+        if (!$this->seller_rating_avg || $this->seller_rating_count === 0) {
+            return 'No ratings';
+        }
+        return number_format($this->seller_rating_avg, 1) . ' (' . $this->seller_rating_count . ' reviews)';
+    }
+
+    /**
+     * Get seller rating stars
+     */
+    public function getSellerRatingStarsAttribute(): array
+    {
+        $rating = $this->seller_rating_avg ?? 0;
+        $stars = [];
+        
+        for ($i = 1; $i <= 5; $i++) {
+            if ($i <= $rating) {
+                $stars[] = 'full';
+            } elseif ($i - 0.5 <= $rating) {
+                $stars[] = 'half';
+            } else {
+                $stars[] = 'empty';
+            }
+        }
+        
+        return $stars;
+    }
+
+    /**
+     * Update seller rating
+     */
+    public function updateSellerRating(float $rating): void
+    {
+        $currentAvg = $this->seller_rating_avg ?? 0;
+        $currentCount = $this->seller_rating_count ?? 0;
+        
+        $newCount = $currentCount + 1;
+        $newAvg = (($currentAvg * $currentCount) + $rating) / $newCount;
+        
+        $this->update([
+            'seller_rating_avg' => round($newAvg, 2),
+            'seller_rating_count' => $newCount,
+        ]);
+    }
+
+    /**
+     * Increment sales count
+     */
+    public function incrementSalesCount(): void
+    {
+        $this->increment('total_sales_count');
     }
 }

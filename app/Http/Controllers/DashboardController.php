@@ -21,24 +21,43 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // Get domains with completed transactions
+        $domainsWithCompletedTransactions = $user->domains()
+            ->whereHas('transactions', function($query) {
+                $query->where('escrow_state', 'released');
+            })
+            ->pluck('id');
+
         $stats = [
             'my_domains' => $user->domains()->count(),
-            'active_listings' => $user->domains()->where('status', 'active')->count(),
-            'pending_domains' => $user->domains()->where('status', 'draft')->count(),
-            'sold_domains' => Transaction::where('seller_id', $user->id)->where('escrow_state', 'released')->count(),
+            'active_listings' => $user->domains()->where('status', 'active')->whereNotIn('id', $domainsWithCompletedTransactions)->count(),
+            'draft_domains' => $user->domains()->where('status', 'draft')->count(),
+            'sold_domains' => $domainsWithCompletedTransactions->count(),
             'total_bids' => Bid::whereHas('domain', function($query) use ($user) {
                 $query->where('user_id', $user->id);
             })->count(),
-            'active_auctions' => $user->domains()->where('status', 'active')->where('enable_bidding', true)->count(),
+            'active_auctions' => $user->domains()->where('status', 'active')->where('enable_bidding', true)->whereNotIn('id', $domainsWithCompletedTransactions)->count(),
             'total_earnings' => Transaction::where('seller_id', $user->id)->where('escrow_state', 'released')->sum('amount'),
             'wallet_balance' => $user->wallet_balance ?? 0,
         ];
 
+        // Get recent domains with proper status handling
         $recentDomains = $user->domains()
             ->where('status', '!=', 'draft')
+            ->with(['transactions' => function($query) {
+                $query->where('escrow_state', 'released');
+            }])
             ->latest()
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function($domain) {
+                // If domain has a completed transaction, mark it as sold
+                if ($domain->transactions->isNotEmpty()) {
+                    $domain->status = 'sold';
+                    $domain->sold_at = $domain->transactions->first()->updated_at;
+                }
+                return $domain;
+            });
 
         $draftDomains = $user->domains()
             ->where('status', 'draft')
