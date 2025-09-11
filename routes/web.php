@@ -35,6 +35,11 @@ Route::get('/register', function () {
 
 Route::post('/register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
 
+// Email verification routes
+Route::get('/verify-email', [App\Http\Controllers\Auth\RegisteredUserController::class, 'showVerificationForm'])->name('verify-email');
+Route::post('/verify-email', [App\Http\Controllers\Auth\RegisteredUserController::class, 'verifyEmail'])->name('verify-email');
+Route::post('/resend-verification', [App\Http\Controllers\Auth\RegisteredUserController::class, 'resendCode'])->name('resend-verification');
+
 Route::post('/logout', function () { 
     Auth::logout(); 
     return redirect('/'); 
