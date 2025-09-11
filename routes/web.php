@@ -41,7 +41,12 @@ Route::post('/logout', function () {
 })->name('logout');
 
 // Dashboard routes
-Route::get('/dashboard', function () { 
+Route::get('/dashboard', function () {
+    // Check if user is authenticated
+    if (!auth()->check()) {
+        return redirect()->route('login');
+    }
+    
     return view('dashboard', [
         'draftDomains' => collect([]),
         'recentDomains' => collect([]),
@@ -57,8 +62,8 @@ Route::get('/dashboard', function () {
             'totalSales' => 0,
             'totalRevenue' => 0
         ]
-    ]); 
-})->name('dashboard');
+    ]);
+})->name('dashboard')->middleware('auth');
 
 // Domain routes
 Route::get('/domains/create', function () { return view('domains.create'); })->name('domains.create');
