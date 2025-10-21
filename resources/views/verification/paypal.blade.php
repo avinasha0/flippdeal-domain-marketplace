@@ -11,6 +11,33 @@
                     <p class="mt-2 text-gray-600">Add your PayPal email address to receive payments from domain sales. Your email will be automatically verified upon submission.</p>
                 </div>
 
+                <!-- Success Message -->
+                @if(session('success'))
+                    <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                            <p class="text-green-700">{{ session('success') }}</p>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Error Messages -->
+                @if($errors->any())
+                    <div class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+                            <div>
+                                <h4 class="text-red-800 font-medium">Please correct the following errors:</h4>
+                                <ul class="mt-2 text-red-700 text-sm list-disc list-inside">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 @if($user->isPayPalVerified())
                     <!-- Already Verified -->
                     <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">

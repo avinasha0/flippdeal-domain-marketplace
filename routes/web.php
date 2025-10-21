@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\RecentActivityController;
 
 // Include auth routes
 require __DIR__.'/auth.php';
@@ -38,10 +39,10 @@ Route::get('/register', function () {
 
 Route::post('/register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
 
-// Email verification routes for new user registration only
-Route::get('/register/verify-email', [App\Http\Controllers\Auth\RegisteredUserController::class, 'showVerificationForm'])->name('register.verify-email');
-Route::post('/register/verify-email', [App\Http\Controllers\Auth\RegisteredUserController::class, 'verifyEmail'])->name('register.verify-email');
-Route::post('/register/resend-verification', [App\Http\Controllers\Auth\RegisteredUserController::class, 'resendCode'])->name('register.resend-verification');
+// Email activation routes for new user registration
+Route::get('/register/activate-email', [App\Http\Controllers\Auth\RegisteredUserController::class, 'showActivationForm'])->name('register.activate-email');
+Route::get('/register/activate/{token}/{email}', [App\Http\Controllers\Auth\RegisteredUserController::class, 'activateAccount'])->name('register.activate');
+Route::post('/register/resend-activation', [App\Http\Controllers\Auth\RegisteredUserController::class, 'resendActivation'])->name('register.resend-activation');
 
 Route::post('/logout', function () { 
     Auth::logout(); 
@@ -181,17 +182,89 @@ Route::put('/password', function () {
 })->name('password.update');
 
 // Verification routes
-Route::get('/verification', function () { return view('verification.index'); })->name('verification.index');
-Route::get('/verification/government-id', function () { return view('verification.government-id'); })->name('verification.government-id');
-Route::post('/verification/government-id', function () { return redirect()->back()->with('success', 'Government ID submitted!'); })->name('verification.government-id.submit');
-Route::get('/verification/paypal', function () { return view('verification.paypal'); })->name('verification.paypal');
-Route::post('/verification/paypal', function () { return redirect()->back()->with('success', 'PayPal verification submitted!'); })->name('verification.paypal.submit');
+Route::get('/verification', function () { 
+    return view('verification.index', [
+        'user' => auth()->user(),
+        'verifications' => collect([])
+    ]); 
+})->name('verification.index')->middleware('auth');
+Route::get('/verification/government-id', function () { 
+    return view('verification.government-id', [
+        'user' => auth()->user(),
+        'governmentIdVerification' => null
+    ]); 
+})->name('verification.government-id')->middleware('auth');
+Route::post('/verification/government-id', function () { 
+    $request = request();
+    
+    // Validate the request
+    $request->validate([
+        'government_id' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120' // 5MB max
+    ]);
+    
+    // Get the authenticated user
+    $user = auth()->user();
+    
+    // Store the uploaded file
+    if ($request->hasFile('government_id')) {
+        $file = $request->file('government_id');
+        $filename = 'government_ids/' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('public', $filename);
+        
+        // Update user's government ID path and mark as verified
+        $user->update([
+            'government_id_path' => $filename,
+            'government_id_verified' => true, // Auto-verify for demo purposes
+            'government_id_verified_at' => now(),
+            'government_id_rejection_reason' => null
+        ]);
+    }
+    
+    return redirect()->route('verification.government-id')->with('success', 'Government ID has been uploaded and verified successfully!');
+})->name('verification.government-id.submit')->middleware('auth');
+Route::get('/verification/paypal', function () { 
+    return view('verification.paypal', [
+        'user' => auth()->user(),
+        'paypalVerification' => null
+    ]); 
+})->name('verification.paypal')->middleware('auth');
+Route::post('/verification/paypal', function () { 
+    $request = request();
+    
+    // Validate the request
+    $request->validate([
+        'paypal_email' => 'required|email|max:255'
+    ]);
+    
+    // Get the authenticated user
+    $user = auth()->user();
+    
+    // Update user's PayPal email and mark as verified
+    $user->update([
+        'paypal_email' => $request->paypal_email,
+        'paypal_verified' => true,
+        'paypal_verified_at' => now()
+    ]);
+    
+    return redirect()->route('verification.paypal')->with('success', 'PayPal email has been added and verified successfully!');
+})->name('verification.paypal.submit')->middleware('auth');
 Route::post('/verification/send', [App\Http\Controllers\VerificationController::class, 'sendVerificationEmail'])->name('verification.send');
 Route::post('/verification/verify-email', [App\Http\Controllers\VerificationController::class, 'verifyEmail'])->name('verification.verify-email');
 
 // PayPal routes
 Route::get('/paypal/connect', function () { return redirect()->back()->with('success', 'PayPal connected!'); })->name('paypal.connect');
 Route::get('/paypal/disconnect', function () { return redirect()->back()->with('success', 'PayPal disconnected!'); })->name('paypal.disconnect');
+
+// Wallet routes
+Route::middleware('auth')->group(function () {
+    Route::get('/wallet', [App\Http\Controllers\WalletController::class, 'index'])->name('wallet.index');
+    Route::get('/wallet/balance', [App\Http\Controllers\WalletController::class, 'getBalance'])->name('wallet.balance');
+    Route::get('/wallet/transactions', [App\Http\Controllers\WalletController::class, 'getTransactions'])->name('wallet.transactions');
+    Route::post('/wallet/withdraw', [App\Http\Controllers\WalletController::class, 'withdraw'])->name('wallet.withdraw');
+    Route::post('/wallet/add-funds', [App\Http\Controllers\WalletController::class, 'addFunds'])->name('wallet.add-funds');
+    Route::get('/wallet/eligibility', [App\Http\Controllers\WalletController::class, 'getWithdrawalEligibility'])->name('wallet.eligibility');
+    Route::get('/wallet/export', [App\Http\Controllers\WalletController::class, 'exportTransactions'])->name('wallet.export');
+});
 
 // Communication routes - FIXED with proper pagination
 Route::get('/conversations', function () { 
@@ -315,4 +388,39 @@ Route::get('/test-register', function () {
     } catch (Exception $e) {
         return "Error: " . $e->getMessage();
     }
+});
+
+// Activity routes for AJAX requests
+Route::middleware('auth')->group(function () {
+    Route::get('/api/activity', [RecentActivityController::class, 'index']);
+    Route::patch('/api/activity/mark-read', [RecentActivityController::class, 'markAsRead']);
+    Route::patch('/api/activity/mark-all-read', [RecentActivityController::class, 'markAllAsRead']);
+});
+
+// Alternative activity route without CSRF verification
+Route::get('/activity-data', [RecentActivityController::class, 'index'])->middleware('auth');
+
+// Test route for debugging
+Route::get('/test-activity', function () {
+    if (!Auth::check()) {
+        return 'Not authenticated';
+    }
+    
+    $controller = new RecentActivityController();
+    $request = request();
+    $response = $controller->index($request);
+    
+    return response()->json([
+        'status' => 'success',
+        'data' => $response->getData()
+    ]);
+})->middleware('auth');
+
+// Simple test route without authentication
+Route::get('/test-simple', function () {
+    return response()->json([
+        'message' => 'API is working',
+        'authenticated' => Auth::check(),
+        'user_id' => Auth::id()
+    ]);
 });

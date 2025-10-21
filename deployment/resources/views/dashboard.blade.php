@@ -6,7 +6,7 @@
     <div class="md:flex md:items-center md:justify-between">
         <div class="flex-1 min-w-0">
             <h2 class="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
-                Welcome back, {{ auth()->user()->name }}!
+                Welcome Back, {{ ucfirst(auth()->user()->name) }}!
             </h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 Here's an overview of your domain marketplace activity.
@@ -450,16 +450,16 @@
                 </div>
                 <div class="p-6">
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-gray-900 dark:text-white">${{ number_format($stats['wallet_balance'] ?? 1250.50, 2) }}</div>
+                        <div class="text-3xl font-bold text-gray-900 dark:text-white">${{ number_format($stats['wallet_balance'] ?? 0, 2) }}</div>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Available Balance</p>
                     </div>
                     <div class="mt-6 space-y-3">
-                        <button class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Withdraw Funds
-                        </button>
-                        <button class="w-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-3 px-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        <a href="{{ route('wallet.index') }}" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 inline-block text-center">
+                            Manage Wallet
+                        </a>
+                        <a href="{{ route('wallet.index') }}" class="w-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-3 px-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 inline-block text-center">
                             View Transaction History
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

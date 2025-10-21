@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserRole;
-use App\Models\EmailVerificationCode;
-use App\Mail\EmailVerificationMail;
+use App\Models\EmailActivationToken;
+use App\Mail\EmailActivationMail;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,13 +36,13 @@ class RegisteredUserController extends Controller
         ]);
 
         try {
-            // Generate verification code
-            $verificationCode = EmailVerificationCode::generateCode($request->email);
+            // Generate activation token
+            $activationToken = EmailActivationToken::generateToken($request->email);
             
-            // Send verification email
-            Mail::to($request->email)->send(new EmailVerificationMail($request->email, $verificationCode->code));
+            // Send activation email
+            Mail::to($request->email)->send(new EmailActivationMail($request->email, $activationToken->token));
             
-            // Store user data in session for verification
+            // Store user data in session for activation
             session([
                 'pending_user' => [
                     'name' => $request->name,
@@ -55,20 +55,18 @@ class RegisteredUserController extends Controller
                 ]
             ]);
             
-            return redirect()->route('register.verify-email')->with('success', 'Verification code sent to your email!');
+            return redirect()->route('register.activate-email')->with('success', 'Activation email sent to your email address!');
             
         } catch (\Exception $e) {
-            return back()->withErrors(['email' => 'Failed to send verification email. Please try again.']);
+            return back()->withErrors(['email' => 'Failed to send activation email. Please try again.']);
         }
     }
 
-    public function showVerificationForm(): View|RedirectResponse
+    public function showActivationForm(): View|RedirectResponse
     {
-        
-        // Check if user is already logged in (existing user trying to verify email)
+        // Check if user is already logged in
         if (Auth::check()) {
-            // For authenticated users, redirect to profile page for email verification
-            return redirect()->route('profile.edit')->with('info', 'You are already logged in. Please use the profile page to verify your email.');
+            return redirect()->route('profile.edit')->with('info', 'You are already logged in.');
         }
         
         // Check if there's a pending user registration
@@ -76,18 +74,14 @@ class RegisteredUserController extends Controller
             return redirect()->route('register')->with('error', 'No pending registration found. Please register first.');
         }
         
-        return view('auth.verify-email');
+        return view('auth.activate-email');
     }
 
-    public function verifyEmail(Request $request): RedirectResponse
+    public function activateAccount(Request $request, $token, $email): RedirectResponse
     {
-        $request->validate([
-            'verification_code' => ['required', 'string', 'size:6']
-        ]);
-
-        // Check if user is already logged in (existing user trying to verify email)
+        // Check if user is already logged in
         if (Auth::check()) {
-            return redirect()->route('profile.edit')->with('info', 'You are already logged in. Please use the profile page to verify your email.');
+            return redirect()->route('profile.edit')->with('info', 'You are already logged in.');
         }
 
         $pendingUser = session('pending_user');
@@ -96,7 +90,12 @@ class RegisteredUserController extends Controller
             return redirect()->route('register')->with('error', 'No pending registration found. Please register first.');
         }
 
-        if (EmailVerificationCode::verifyCode($pendingUser['email'], $request->verification_code)) {
+        // Verify the token matches the pending user's email
+        if ($pendingUser['email'] !== $email) {
+            return redirect()->route('register')->with('error', 'Invalid activation link.');
+        }
+
+        if (EmailActivationToken::verifyToken($email, $token)) {
             try {
                 $userRole = UserRole::where('name', 'user')->first();
                 
@@ -117,19 +116,20 @@ class RegisteredUserController extends Controller
                 session()->forget('pending_user');
                 
                 event(new Registered($user));
-                Auth::login($user);
+                // Don't auto-login, redirect to login page instead
+                // Auth::login($user);
 
-                return redirect('/')->with('success', 'Registration successful! Your email has been verified.');
+                return redirect()->route('login')->with('success', 'Account activated successfully! Please log in to continue.');
                 
             } catch (\Exception $e) {
-                return back()->withErrors(['verification_code' => 'Registration failed. Please try again.']);
+                return redirect()->route('register')->with('error', 'Account activation failed. Please try registering again.');
             }
         } else {
-            return back()->withErrors(['verification_code' => 'Invalid or expired verification code.']);
+            return redirect()->route('register.activate-email')->with('error', 'Invalid or expired activation link. Please request a new one.');
         }
     }
 
-    public function resendCode(): RedirectResponse
+    public function resendActivation(): RedirectResponse
     {
         $pendingUser = session('pending_user');
         
@@ -138,12 +138,12 @@ class RegisteredUserController extends Controller
         }
 
         try {
-            $verificationCode = EmailVerificationCode::generateCode($pendingUser['email']);
-            Mail::to($pendingUser['email'])->send(new EmailVerificationMail($pendingUser['email'], $verificationCode->code));
+            $activationToken = EmailActivationToken::generateToken($pendingUser['email']);
+            Mail::to($pendingUser['email'])->send(new EmailActivationMail($pendingUser['email'], $activationToken->token));
             
-            return back()->with('success', 'New verification code sent to your email!');
+            return back()->with('success', 'New activation email sent to your email address!');
         } catch (\Exception $e) {
-            return back()->withErrors(['email' => 'Failed to resend verification code. Please try again.']);
+            return back()->withErrors(['email' => 'Failed to resend activation email. Please try again.']);
         }
     }
 }

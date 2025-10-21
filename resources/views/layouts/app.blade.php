@@ -5,6 +5,9 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        @auth
+            <meta name="user-id" content="{{ auth()->id() }}">
+        @endauth
 
         <title>{{ config('app.name', 'FlippDeal') }} - @yield('title', 'Domain Marketplace')</title>
 
@@ -20,6 +23,9 @@
         
         <!-- Chart.js -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        
+        <!-- Activity Manager -->
+        <script src="{{ asset('js/activity-manager.js') }}"></script>
     </head>
     <body class="font-sans antialiased bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
         <div class="min-h-screen flex flex-col">
@@ -44,7 +50,7 @@
                 <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
                     <div class="flex items-center justify-between">
                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                            © {{ date('Y') }} {{ config('app.name', 'FlippDeal') }}. All rights reserved.
+                            © {{ date('Y') }} FlippDeal. All rights reserved.
                         </div>
                         <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode)" 
                                 class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
