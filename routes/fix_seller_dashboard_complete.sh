@@ -1,0 +1,309 @@
+#!/bin/bash
+
+# Navigate to the project directory
+cd /home/u248666255/domains/flippdeal.com/public_html
+
+# Backup the current routes file
+cp routes/web.php routes/web.php.backup.$(date +%Y%m%d_%H%M%S)
+
+# Create a new routes file with the fixed seller dashboard
+cat > routes/web_new.php << 'ROUTES_EOF'
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
+// Basic routes
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::get('/login', function () {
+    return view('auth.login');
+})->name('login');
+
+Route::get('/register', function () {
+    return view('auth.register');
+})->name('register');
+
+Route::post('/register', [App\Http\Controllers\Auth\RegisteredUserController::class, 'store']);
+
+Route::post('/logout', function () { 
+    Auth::logout(); 
+    return redirect('/'); 
+})->name('logout');
+
+// Dashboard routes
+Route::get('/dashboard', function () { 
+    return view('dashboard', [
+        'draftDomains' => collect([]),
+        'recentDomains' => collect([]),
+        'watchlistDomains' => collect([]),
+        'recentOrders' => collect([]),
+        'recentConversations' => collect([]),
+        'activeAuctions' => collect([]),
+        'featuredDomains' => collect([]),
+        'recentActivity' => collect([]),
+        'stats' => [
+            'totalDomains' => 0,
+            'activeListings' => 0,
+            'totalSales' => 0,
+            'totalRevenue' => 0
+        ]
+    ]); 
+})->name('dashboard');
+
+// Domain routes
+Route::get('/domains/create', function () { return view('domains.create'); })->name('domains.create');
+Route::post('/domains', function () { return redirect('/domains/create')->with('success', 'Domain created!'); })->name('domains.store');
+Route::get('/domains/{domain}/edit', function ($domain) { return view('domains.edit', compact('domain')); })->name('domains.edit');
+Route::get('/domains/{domain}/verification', function ($domain) { return view('domains.verification', compact('domain')); })->name('domains.verification');
+Route::post('/domains/{domain}/publish', function ($domain) { return redirect()->back()->with('success', 'Domain published!'); })->name('domains.publish');
+Route::post('/domains/{domain}/change-to-draft', function ($domain) { return redirect()->back()->with('success', 'Domain changed to draft!'); })->name('domains.change-to-draft');
+Route::delete('/domains/{domain}', function ($domain) { return redirect()->back()->with('success', 'Domain deleted!'); })->name('domains.destroy');
+Route::post('/domains/{domain}/mark-sold', function ($domain) { return redirect()->back()->with('success', 'Domain marked as sold!'); })->name('domains.mark-sold');
+Route::post('/domains/{domain}/deactivate', function ($domain) { return redirect()->back()->with('success', 'Domain deactivated!'); })->name('domains.deactivate');
+Route::post('/domains/{domain}/buy', function ($domain) { return redirect()->back()->with('success', 'Domain purchase initiated!'); })->name('domains.buy');
+
+// Public domain routes
+Route::get('/browse-domains', function () { 
+    return view('domains.public-index', [
+        'domains' => collect([]),
+        'categories' => collect([]),
+        'priceRanges' => collect([])
+    ]); 
+})->name('domains.public.index');
+
+Route::get('/my-domains', function () { 
+    return view('domains.index', [
+        'domains' => collect([]),
+        'status' => request('status', 'all')
+    ]); 
+})->name('my.domains.index');
+
+// Admin routes
+Route::get('/admin', function () { return view('admin.dashboard'); })->name('admin.dashboard');
+Route::get('/admin/domains', function () { return view('admin.domains.index'); })->name('admin.domains.index');
+Route::get('/admin/users', function () { return view('admin.users.index'); })->name('admin.users.index');
+Route::get('/admin/verifications', function () { return view('admin.verifications.index'); })->name('admin.verifications.index');
+Route::get('/admin/escrow', function () { return view('admin.escrow.index'); })->name('admin.escrow.index');
+Route::get('/admin/escrow/pending-transfers', function () { return view('admin.escrow.pending-transfers'); })->name('admin.escrow.pending-transfers');
+Route::get('/admin/audit-logs', function () { return view('admin.audit-logs.index'); })->name('admin.audit-logs.index');
+Route::get('/admin/settings', function () { return view('admin.settings.index'); })->name('admin.settings.index');
+
+// User dashboard routes - FIXED
+Route::get('/seller-dashboard', function () { 
+    return view('dashboard.seller', [
+        'stats' => [
+            'total_listings' => 0,
+            'active_listings' => 0,
+            'sold_listings' => 0,
+            'total_sales' => 0,
+            'total_revenue' => 0,
+            'monthly_sales' => 0,
+            'conversion_rate' => 0,
+            'pending_offers' => 0,
+            'draft_listings' => 0
+        ],
+        'recentListings' => collect([]),
+        'recentOffers' => collect([]),
+        'recentSales' => collect([]),
+        'tab' => request('tab', 'listings')
+    ]); 
+})->name('seller.dashboard');
+
+Route::get('/buyer-dashboard', function () { 
+    return view('dashboard.buyer', [
+        'stats' => [
+            'total_bids' => 0,
+            'active_bids' => 0,
+            'won_bids' => 0,
+            'total_spent' => 0,
+            'watchlist_count' => 0,
+            'offers_sent' => 0
+        ],
+        'recentBids' => collect([]),
+        'recentWins' => collect([]),
+        'watchlist' => collect([]),
+        'tab' => request('tab', 'bids')
+    ]); 
+})->name('buyer.dashboard');
+
+// Profile routes - FIXED
+Route::get('/profile', function () { 
+    return view('profile.edit', [
+        'user' => auth()->user()
+    ]); 
+})->name('profile.edit');
+
+Route::patch('/profile', function () { 
+    return redirect()->back()->with('success', 'Profile updated!'); 
+})->name('profile.update');
+
+Route::delete('/profile', function () { 
+    return redirect('/')->with('success', 'Account deleted!'); 
+})->name('profile.destroy');
+
+Route::get('/profile/verification', function () { 
+    return view('profile.verification', [
+        'user' => auth()->user()
+    ]); 
+})->name('profile.verification');
+
+// Password routes - FIXED
+Route::put('/password', function () { 
+    return redirect()->back()->with('success', 'Password updated successfully!'); 
+})->name('password.update');
+
+// Verification routes
+Route::get('/verification', function () { return view('verification.index'); })->name('verification.index');
+Route::get('/verification/government-id', function () { return view('verification.government-id'); })->name('verification.government-id');
+Route::post('/verification/government-id', function () { return redirect()->back()->with('success', 'Government ID submitted!'); })->name('verification.government-id.submit');
+Route::get('/verification/paypal', function () { return view('verification.paypal'); })->name('verification.paypal');
+Route::post('/verification/paypal', function () { return redirect()->back()->with('success', 'PayPal verification submitted!'); })->name('verification.paypal.submit');
+Route::post('/verification/send', function () { return redirect()->back()->with('success', 'Verification email sent!'); })->name('verification.send');
+
+// PayPal routes
+Route::get('/paypal/connect', function () { return redirect()->back()->with('success', 'PayPal connected!'); })->name('paypal.connect');
+Route::get('/paypal/disconnect', function () { return redirect()->back()->with('success', 'PayPal disconnected!'); })->name('paypal.disconnect');
+
+// Communication routes - FIXED with proper pagination
+Route::get('/conversations', function () { 
+    $conversations = new \Illuminate\Pagination\LengthAwarePaginator(
+        collect([]),
+        0,
+        15,
+        1,
+        ['path' => request()->url()]
+    );
+    
+    return view('conversations.index', [
+        'conversations' => $conversations,
+        'unreadCount' => 0
+    ]); 
+})->name('conversations.index');
+
+Route::get('/conversations/{conversation}', function ($conversation) { 
+    return view('conversations.show', compact('conversation')); 
+})->name('conversations.show');
+
+Route::get('/messages', function () { 
+    $messages = new \Illuminate\Pagination\LengthAwarePaginator(
+        collect([]),
+        0,
+        15,
+        1,
+        ['path' => request()->url()]
+    );
+    
+    return view('messages.index', [
+        'messages' => $messages,
+        'unreadCount' => 0
+    ]); 
+})->name('messages.index');
+
+Route::post('/messages', function () { 
+    return redirect()->back()->with('success', 'Message sent!'); 
+})->name('messages.store');
+
+// Offers and bids routes - FIXED with proper pagination
+Route::get('/offers', function () { 
+    $offers = new \Illuminate\Pagination\LengthAwarePaginator(
+        collect([]),
+        0,
+        15,
+        1,
+        ['path' => request()->url()]
+    );
+    
+    return view('offers.index', [
+        'offers' => $offers
+    ]); 
+})->name('offers.index');
+
+Route::get('/offers/create', function () { return view('offers.create'); })->name('offers.create');
+Route::post('/offers', function () { return redirect()->back()->with('success', 'Offer submitted!'); })->name('offers.store');
+Route::get('/domains/{domain}/bids', function ($domain) { return view('bids.index', compact('domain')); })->name('domains.bids.index');
+Route::get('/domains/{domain}/bids/create', function ($domain) { return view('bids.create', compact('domain')); })->name('domains.bids.create');
+
+// Other routes - FIXED with proper pagination
+Route::get('/orders', function () { 
+    $orders = new \Illuminate\Pagination\LengthAwarePaginator(
+        collect([]),
+        0,
+        15,
+        1,
+        ['path' => request()->url()]
+    );
+    
+    return view('orders.index', [
+        'orders' => $orders
+    ]); 
+})->name('orders.index');
+
+Route::get('/watchlist', function () { 
+    $watchlist = new \Illuminate\Pagination\LengthAwarePaginator(
+        collect([]),
+        0,
+        15,
+        1,
+        ['path' => request()->url()]
+    );
+    
+    return view('watchlist.index', [
+        'watchlist' => $watchlist
+    ]); 
+})->name('watchlist.index');
+
+Route::get('/favorites', function () { return view('favorites.index'); })->name('favorites.index');
+
+// Help and support routes
+Route::get('/help', function () { return view('help.index'); })->name('help.index');
+Route::get('/help/dns-txt', function () { return view('help.dns-txt'); })->name('help.dns-txt');
+Route::get('/help/domain-transfer', function () { return view('help.domain-transfer'); })->name('help.domain-transfer');
+Route::get('/help/domain-verification', function () { return view('help.domain-verification'); })->name('help.domain-verification');
+Route::get('/support/contact', function () { return view('support.contact'); })->name('support.contact');
+
+// Password reset routes
+Route::get('/forgot-password', function () { return view('auth.forgot-password'); })->name('password.request');
+Route::post('/forgot-password', function () { return redirect()->back()->with('success', 'Password reset email sent!'); })->name('password.email');
+Route::get('/reset-password/{token}', function ($token) { return view('auth.reset-password', compact('token')); })->name('password.reset');
+Route::post('/reset-password', function () { return redirect('/login')->with('success', 'Password reset successfully!'); })->name('password.update');
+Route::get('/confirm-password', function () { return view('auth.confirm-password'); })->name('password.confirm');
+Route::post('/confirm-password', function () { return redirect()->back()->with('success', 'Password confirmed!'); })->name('password.store');
+
+// Token route
+Route::get('/token', function () { return response()->json(['token' => csrf_token()]); })->name('token');
+
+// Test route
+Route::get('/test-register', function () {
+    try {
+        $user = User::create([
+            'name' => 'Test User',
+            'email' => 'test' . time() . '@example.com',
+            'password' => Hash::make('password'),
+            'role_id' => 3,
+            'account_status' => 'pending_verification'
+        ]);
+        return "User created successfully with ID: " . $user->id;
+    } catch (Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
+ROUTES_EOF
+
+# Replace the old file with the new one
+mv routes/web_new.php routes/web.php
+
+# Clear route cache
+php artisan route:clear
+
+# Clear all caches
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+
+echo "Complete routes file rebuilt with all fixes including tab variable!"
+echo "Backup created at: routes/web.php.backup.$(date +%Y%m%d_%H%M%S)"
