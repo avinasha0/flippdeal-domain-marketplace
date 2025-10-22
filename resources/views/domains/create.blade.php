@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'List Domain for Sale')
+@section('description', 'List your domain for sale on FlippDeal marketplace. Create detailed listings with pricing, features, and verification to maximize your domain value.')
+@section('keywords', 'list domain, sell domain, domain listing, create listing, domain for sale, marketplace listing, domain seller')
 
 @section('content')
                         <!-- Page Header -->

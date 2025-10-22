@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title', $domain->full_domain . ' - Domain Details')
+@section('description', 'View detailed information about ' . $domain->full_domain . ' - ' . ($domain->description ?: 'Premium domain available for purchase') . '. Price: ' . $domain->formatted_price . ($domain->bin_price ? ', Buy It Now: ' . $domain->formatted_bin_price : '') . '.')
+@section('keywords', $domain->full_domain . ', domain for sale, ' . ($domain->category ?: 'premium domain') . ', domain investment, ' . ($domain->has_website ? 'website included, ' : '') . ($domain->has_traffic ? 'traffic domain, ' : '') . 'domain marketplace, buy domain')
 
 @section('content')
 @php

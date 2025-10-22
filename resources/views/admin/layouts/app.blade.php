@@ -5,7 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }} - Admin Panel</title>
+    <!-- SEO Meta Tags -->
+    <title>{{ config('app.name', 'FlippDeal') }} - Admin Panel</title>
+    <meta name="description" content="FlippDeal admin panel for managing domain marketplace, users, and system settings.">
+    <meta name="keywords" content="admin panel, domain management, marketplace admin, system administration">
+    <meta name="author" content="FlippDeal">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/svg+xml" sizes="16x16" href="{{ asset('favicon-16x16.svg') }}">
+    <link rel="icon" type="image/svg+xml" sizes="32x32" href="{{ asset('favicon-32x32.svg') }}">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.svg') }}">
+    
+    <!-- Theme Colors -->
+    <meta name="theme-color" content="#8B5CF6">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -19,8 +33,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="font-sans antialiased bg-gray-100">
-    <div class="min-h-screen">
-        <!-- Navigation -->
+    <div class="min-h-screen flex flex-col">
+        @include('components.header')
+        
+        <!-- Admin Navigation -->
         <nav class="bg-white shadow-sm border-b border-gray-200">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
@@ -167,6 +183,9 @@
 
             @yield('content')
         </main>
+
+        <!-- Footer -->
+        @include('components.footer')
     </div>
 
     <script>

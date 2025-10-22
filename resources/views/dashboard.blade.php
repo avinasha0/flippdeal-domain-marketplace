@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@section('title', 'Dashboard')
+@section('description', 'Manage your domain listings, track sales performance, and monitor marketplace activity on your FlippDeal dashboard.')
+@section('keywords', 'dashboard, domain management, sales tracking, marketplace dashboard, domain portfolio, listing management')
+
 @section('content')
 <div class="space-y-6">
     <!-- Page Header -->
