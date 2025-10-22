@@ -43,7 +43,6 @@ class DashboardController extends Controller
 
         // Get recent domains with proper status handling
         $recentDomains = $user->domains()
-            ->where('status', '!=', 'draft')
             ->with(['transactions' => function($query) {
                 $query->where('escrow_state', 'released');
             }])

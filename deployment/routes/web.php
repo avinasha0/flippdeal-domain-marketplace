@@ -50,29 +50,7 @@ Route::post('/logout', function () {
 })->name('logout');
 
 // Dashboard routes
-Route::get('/dashboard', function () {
-    // Check if user is authenticated
-    if (!auth()->check()) {
-        return redirect()->route('login');
-    }
-    
-    return view('dashboard', [
-        'draftDomains' => collect([]),
-        'recentDomains' => collect([]),
-        'watchlistDomains' => collect([]),
-        'recentOrders' => collect([]),
-        'recentConversations' => collect([]),
-        'activeAuctions' => collect([]),
-        'featuredDomains' => collect([]),
-        'recentActivity' => collect([]),
-        'stats' => [
-            'totalDomains' => 0,
-            'activeListings' => 0,
-            'totalSales' => 0,
-            'totalRevenue' => 0
-        ]
-    ]);
-})->name('dashboard')->middleware('auth');
+Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
 
 // Domain routes
 Route::get('/domains/create', function () { return view('domains.create'); })->name('domains.create');

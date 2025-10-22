@@ -58,60 +58,7 @@ Route::post('/logout', function () {
 })->name('logout');
 
 // Dashboard routes
-Route::get('/dashboard', function () {
-    // Check if user is authenticated
-    if (!auth()->check()) {
-        return redirect()->route('login');
-    }
-    
-    $user = auth()->user();
-    
-    // Get user's domains
-    $userDomains = $user->domains();
-    
-    // Calculate statistics
-    $totalDomains = $userDomains->count();
-    $activeListings = $userDomains->where('status', 'active')->count();
-    $draftListings = $userDomains->where('status', 'draft')->count();
-    $domainsSold = $userDomains->where('status', 'sold')->count();
-    
-    // Get recent domains
-    $recentDomains = $userDomains->orderBy('created_at', 'desc')->limit(5)->get();
-    $draftDomains = $userDomains->where('status', 'draft')->orderBy('created_at', 'desc')->limit(5)->get();
-    
-    // Calculate total earnings (placeholder - you might want to add an earnings table)
-    $totalEarnings = 0; // This would come from actual sales data
-    
-    // Get bids received (placeholder - you might want to add a bids table)
-    $bidsReceived = 0; // This would come from actual bids data
-    
-    // Get active auctions (placeholder - you might want to add an auctions table)
-    $activeAuctions = 0; // This would come from actual auction data
-    
-    // Get wallet balance (placeholder - you might want to add a wallet table)
-    $walletBalance = 0; // This would come from actual wallet data
-    
-    return view('dashboard', [
-        'draftDomains' => $draftDomains,
-        'recentDomains' => $recentDomains,
-        'watchlistDomains' => collect([]), // Placeholder
-        'recentOrders' => collect([]), // Placeholder
-        'recentConversations' => collect([]), // Placeholder
-        'activeAuctions' => collect([]), // Placeholder
-        'featuredDomains' => collect([]), // Placeholder
-        'recentActivity' => collect([]), // Placeholder
-        'stats' => [
-            'my_domains' => $totalDomains,
-            'active_listings' => $activeListings,
-            'total_bids' => $bidsReceived,
-            'total_earnings' => $totalEarnings,
-            'draft_domains' => $draftListings,
-            'sold_domains' => $domainsSold,
-            'active_auctions' => $activeAuctions,
-            'wallet_balance' => $walletBalance
-        ]
-    ]);
-})->name('dashboard')->middleware('auth');
+Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
 
 // Domain routes
 Route::middleware('auth')->group(function () {
