@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Carbon\Carbon;
 
 class RegisteredUserController extends Controller
 {
@@ -36,8 +37,19 @@ class RegisteredUserController extends Controller
         ]);
 
         try {
-            // Generate activation token
-            $activationToken = EmailActivationToken::generateToken($request->email);
+            // Prepare user data
+            $userData = [
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'phone' => $request->phone,
+                'company_name' => $request->company_name,
+                'website' => $request->website,
+                'location' => $request->location,
+            ];
+            
+            // Generate activation token with user data
+            $activationToken = EmailActivationToken::generateTokenWithData($request->email, $userData);
             
             // Log the attempt
             \Log::info('Attempting to send activation email', [
@@ -56,17 +68,9 @@ class RegisteredUserController extends Controller
                 'token_id' => $activationToken->id
             ]);
             
-            // Store user data in session for activation
+            // Store user data in session for activation (backup)
             session([
-                'pending_user' => [
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
-                    'phone' => $request->phone,
-                    'company_name' => $request->company_name,
-                    'website' => $request->website,
-                    'location' => $request->location,
-                ]
+                'pending_user' => $userData
             ]);
             
             return redirect()->route('register.activate-email')->with('success', 'Activation email sent to your email address!');
@@ -123,19 +127,40 @@ class RegisteredUserController extends Controller
             return redirect()->route('profile.edit')->with('info', 'You are already logged in.');
         }
 
-        $pendingUser = session('pending_user');
-        
-        if (!$pendingUser) {
-            return redirect()->route('register')->with('error', 'No pending registration found. Please register first.');
+        // Check if user already exists
+        $existingUser = User::where('email', $email)->first();
+        if ($existingUser) {
+            return redirect()->route('login')->with('info', 'Account already exists. Please log in.');
         }
 
-        // Verify the token matches the pending user's email
-        if ($pendingUser['email'] !== $email) {
-            return redirect()->route('register')->with('error', 'Invalid activation link.');
-        }
+        // Get the activation token with user data
+        $activationToken = EmailActivationToken::where('email', $email)
+            ->where('token', $token)
+            ->where('used', false)
+            ->where('expires_at', '>', Carbon::now())
+            ->first();
 
-        if (EmailActivationToken::verifyToken($email, $token)) {
+        if ($activationToken) {
             try {
+                // Get user data from token or session (fallback)
+                $pendingUser = null;
+                
+                if ($activationToken->pending_user_data) {
+                    $pendingUser = json_decode($activationToken->pending_user_data, true);
+                } else {
+                    // Fallback to session data
+                    $pendingUser = session('pending_user');
+                }
+                
+                if (!$pendingUser) {
+                    return redirect()->route('register')->with('error', 'Session expired. Please register again.');
+                }
+
+                // Verify the token matches the pending user's email
+                if ($pendingUser['email'] !== $email) {
+                    return redirect()->route('register')->with('error', 'Invalid activation link.');
+                }
+
                 $userRole = UserRole::where('name', 'user')->first();
                 
                 $user = User::create([
@@ -151,20 +176,26 @@ class RegisteredUserController extends Controller
                     'email_verified_at' => now()
                 ]);
 
-                // Clear pending user data
+                // Mark token as used and clear session
+                $activationToken->update(['used' => true]);
                 session()->forget('pending_user');
                 
                 event(new Registered($user));
-                // Don't auto-login, redirect to login page instead
-                // Auth::login($user);
 
                 return redirect()->route('login')->with('success', 'Account activated successfully! Please log in to continue.');
                 
             } catch (\Exception $e) {
+                \Log::error('Account activation failed', [
+                    'email' => $email,
+                    'token' => $token,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
                 return redirect()->route('register')->with('error', 'Account activation failed. Please try registering again.');
             }
         } else {
-            return redirect()->route('register.activate-email')->with('error', 'Invalid or expired activation link. Please request a new one.');
+            return redirect()->route('register')->with('error', 'Invalid or expired activation link. Please request a new one.');
         }
     }
 
