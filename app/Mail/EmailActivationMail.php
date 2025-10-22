@@ -24,7 +24,7 @@ class EmailActivationMail extends Mailable
     {
         $this->email = $email;
         $this->token = $token;
-        $this->activationUrl = route('register.activate', ['token' => $token, 'email' => $email]);
+        $this->activationUrl = config('app.url') . '/register/activate/' . $token . '/' . urlencode($email);
     }
 
     /**
