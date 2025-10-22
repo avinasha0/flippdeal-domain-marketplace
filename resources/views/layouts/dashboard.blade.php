@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-id" content="{{ Auth::id() }}">
 
     <!-- SEO Meta Tags -->
     <title>{{ config('app.name', 'FlippDeal') }} - Dashboard</title>
@@ -34,6 +35,9 @@
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Activity Manager -->
+    <script src="{{ asset('js/activity-manager.js') }}"></script>
     
     <!-- Heroicons -->
     <script src="https://unpkg.com/heroicons@2.0.18/24/outline/index.js" type="module"></script>

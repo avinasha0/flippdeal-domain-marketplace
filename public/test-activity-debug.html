@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Activity Debug Test</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-id" content="1">
+</head>
+<body>
+    <h1>Activity Debug Test</h1>
+    <div id="activity-container">
+        <p>Loading...</p>
+    </div>
+    
+    <script>
+        async function testActivityAPI() {
+            const container = document.getElementById('activity-container');
+            
+            try {
+                console.log('Testing activity API...');
+                
+                // Test the activity-data route first
+                let response = await fetch('/activity-data', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    console.log('Trying API route with CSRF...');
+                    // Fallback to API route with CSRF
+                    response = await fetch('/api/activity', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    });
+                    
+                    console.log('API Response status:', response.status);
+                }
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    container.innerHTML = '<p style="color: red;">Error: ' + response.status + ' - ' + response.statusText + '</p>';
+                    return;
+                }
+                
+                const data = await response.json();
+                console.log('Activities data:', data);
+                
+                if (data.activities && data.activities.length > 0) {
+                    container.innerHTML = '<h2>Activities Found:</h2>' + 
+                        data.activities.map(activity => 
+                            '<div style="border: 1px solid #ccc; margin: 10px; padding: 10px;">' +
+                            '<h3>' + activity.title + '</h3>' +
+                            '<p>' + activity.message + '</p>' +
+                            '<small>' + activity.time + '</small>' +
+                            '</div>'
+                        ).join('');
+                } else {
+                    container.innerHTML = '<p>No activities found</p>';
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', testActivityAPI);
+    </script>
+</body>
+</html>
