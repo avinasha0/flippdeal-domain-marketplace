@@ -1,5 +1,35 @@
 @extends('layouts.app')
 
+@section('head')
+<style>
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification-message {
+    animation: slideIn 0.3s ease-out;
+}
+</style>
+@endsection
+
 @section('content')
 <div class="py-12">
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
@@ -43,11 +73,15 @@
                         
                         @if(empty($instructions))
                             <div class="text-center py-8">
-                                <p class="text-gray-500 mb-4">No verification record found. Generate one to get started.</p>
-                                <button onclick="generateVerification()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                                    <i class="fas fa-plus mr-2"></i>
-                                    Generate Verification Record
-                                </button>
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                <p class="text-gray-500 mb-4">Generating verification record...</p>
+                                <p class="text-sm text-gray-400">Please wait while we set up your domain verification.</p>
+                                <script>
+                                    // Auto-refresh after 2 seconds if no instructions
+                                    setTimeout(() => {
+                                        location.reload();
+                                    }, 2000);
+                                </script>
                             </div>
                         @else
                             <!-- Website Status Check -->
@@ -210,6 +244,12 @@
                                 <i class="fas fa-refresh mr-2"></i>
                                 Regenerate Record
                             </button>
+                            
+                            <!-- Test Notification Button -->
+                            <button onclick="testNotification()" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded flex items-center justify-center">
+                                <i class="fas fa-bell mr-2"></i>
+                                Test Notification
+                            </button>
                         @endif
                         
                         <a href="{{ route('domains.show', $domain) }}" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded flex items-center justify-center">
@@ -262,22 +302,61 @@ function hideLoading() {
 }
 
 function showMessage(message, type = 'success') {
-    const alertClass = type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700';
+    console.log('showMessage called:', message, type);
+    
+    // Remove any existing notifications first
+    const existingNotifications = document.querySelectorAll('.notification-message');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    const alertClass = type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white';
     const messageDiv = document.createElement('div');
-    messageDiv.className = `fixed top-4 right-4 ${alertClass} px-4 py-3 rounded relative z-50`;
-    messageDiv.innerHTML = `
-        <span class="block sm:inline">${message}</span>
-        <button onclick="this.parentElement.remove()" class="absolute top-0 bottom-0 right-0 px-4 py-3">
-            <i class="fas fa-times"></i>
-        </button>
+    messageDiv.className = `notification-message fixed top-4 right-4 ${alertClass} px-6 py-4 rounded-lg shadow-lg z-50 max-w-md`;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease-out;
     `;
+    
+    messageDiv.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                ${type === 'success' ? 
+                    '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>' :
+                    '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
+                }
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-white hover:text-gray-200 focus:outline-none">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+    
     document.body.appendChild(messageDiv);
     
+    // Auto-remove after 8 seconds
     setTimeout(() => {
         if (messageDiv.parentElement) {
-            messageDiv.remove();
+            messageDiv.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (messageDiv.parentElement) {
+                    messageDiv.remove();
+                }
+            }, 300);
         }
-    }, 5000);
+    }, 8000);
+    
+    console.log('Notification added to DOM');
 }
 
 async function generateVerification() {
@@ -310,9 +389,11 @@ async function generateVerification() {
 }
 
 async function verifyDomain() {
+    console.log('verifyDomain function called');
     showLoading('Verifying domain ownership...');
     
     try {
+        console.log('Making request to:', '{{ route('domains.verification.verify', $domain) }}');
         const response = await fetch(`{{ route('domains.verification.verify', $domain) }}`, {
             method: 'POST',
             headers: {
@@ -321,7 +402,9 @@ async function verifyDomain() {
             }
         });
         
+        console.log('Response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
         
         if (data.success) {
             showMessage(data.message, 'success');
@@ -332,6 +415,7 @@ async function verifyDomain() {
             showMessage(data.message, 'error');
         }
     } catch (error) {
+        console.error('Error in verifyDomain:', error);
         showMessage('An error occurred. Please try again.', 'error');
     } finally {
         hideLoading();
@@ -372,9 +456,11 @@ async function regenerateVerification() {
 }
 
 async function verifyByFile() {
+    console.log('verifyByFile function called');
     showLoading('Verifying file upload...');
     
     try {
+        console.log('Making request to:', '{{ route('domains.verification.verify-file', $domain) }}');
         const response = await fetch(`{{ route('domains.verification.verify-file', $domain) }}`, {
             method: 'POST',
             headers: {
@@ -383,7 +469,9 @@ async function verifyByFile() {
             }
         });
         
+        console.log('Response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
         
         if (data.success) {
             showMessage(data.message, 'success');
@@ -394,10 +482,20 @@ async function verifyByFile() {
             showMessage(data.message, 'error');
         }
     } catch (error) {
+        console.error('Error in verifyByFile:', error);
         showMessage('An error occurred. Please try again.', 'error');
     } finally {
         hideLoading();
     }
+}
+
+function testNotification() {
+    console.log('Testing notification system...');
+    showMessage('This is a test notification! If you can see this, notifications are working.', 'success');
+    
+    setTimeout(() => {
+        showMessage('This is a test error notification!', 'error');
+    }, 2000);
 }
 </script>
 @endsection

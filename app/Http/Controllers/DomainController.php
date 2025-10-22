@@ -340,15 +340,20 @@ class DomainController extends Controller
         if ($action === 'publish') {
             // Check if user is fully verified to publish
             if (!Auth::user()->isFullyVerified()) {
-                return back()->withErrors(['error' => 'You must complete your account verification before listing domains for sale.']);
+                // If not verified, save as draft instead of showing error
+                $data['status'] = 'draft';
+                $data['domain_verified'] = false;
+                
+                $successMessage = 'Domain saved as draft! Complete your account verification to publish your listing.';
+                $auditEvent = 'domain_created_draft';
+            } else {
+                // User is verified, can publish
+                $data['status'] = 'draft'; // Still draft until domain verification
+                $data['domain_verified'] = false; // Domain verification required
+                
+                $successMessage = 'Domain created successfully! Please verify domain ownership to publish your listing.';
+                $auditEvent = 'domain_created_draft';
             }
-            
-            // Set status to draft first - domain must be verified before becoming active
-            $data['status'] = 'draft';
-            $data['domain_verified'] = false; // Domain verification required
-            
-            $successMessage = 'Domain created successfully! Please verify domain ownership to publish your listing.';
-            $auditEvent = 'domain_created_draft';
         } else {
             // Save as draft
             $data['status'] = 'draft';
@@ -408,6 +413,7 @@ class DomainController extends Controller
                 return redirect()->route('domains.verification', $domain)
                     ->with('success', $successMessage);
             } else {
+                // For draft, redirect to domain show page
                 return redirect()->route('domains.show', $domain)
                     ->with('success', $successMessage);
             }
@@ -615,7 +621,10 @@ class DomainController extends Controller
             'domain_name' => $domain->domain_name,
             'domain_status' => $domain->status,
             'domain_user_id' => $domain->user_id,
-            'current_user_id' => Auth::id()
+            'current_user_id' => Auth::id(),
+            'request_method' => request()->method(),
+            'form_source' => request()->input('form_source'),
+            'all_input' => request()->all()
         ]);
         
         // Manual authorization check - bypass gate completely

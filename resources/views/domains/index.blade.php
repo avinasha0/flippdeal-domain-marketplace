@@ -2,6 +2,12 @@
 
 @section('title', 'My Domains')
 
+@section('head')
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+@endsection
+
 @section('content')
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -127,10 +133,10 @@
                                                                     Verify Domain
                                                                 </a>
                                                             @else
-                                                                <form method="POST" action="{{ route('domains.publish', $domain) }}" class="inline">
+                                                                <form method="POST" action="{{ route('domains.publish', $domain) }}?v={{ time() }}" class="inline">
                                                                     @csrf
-                                                                    @method('PATCH')
-                                        <button type="submit" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                                                    <input type="hidden" name="form_source" value="domains_index">
+                                                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>

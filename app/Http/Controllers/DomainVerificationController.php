@@ -24,6 +24,12 @@ class DomainVerificationController extends Controller
     {
         $this->authorize('view', $domain);
 
+        // Auto-generate verification record if none exists
+        $verification = $this->verificationService->getVerificationRecord($domain);
+        if (!$verification) {
+            $this->verificationService->generateVerificationRecord($domain);
+        }
+
         $instructions = $this->verificationService->getVerificationInstructions($domain);
         
         return view('domains.verification', compact('domain', 'instructions'));
@@ -61,6 +67,17 @@ class DomainVerificationController extends Controller
         $this->authorize('update', $domain);
 
         try {
+            // Check if verification record exists
+            $verification = $this->verificationService->getVerificationRecord($domain);
+            
+            if (!$verification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No verification record found. Please generate a verification record first.',
+                    'verified' => false
+                ]);
+            }
+
             $isVerified = $this->verificationService->verifyDomainOwnership($domain);
 
             if ($isVerified) {
@@ -70,9 +87,10 @@ class DomainVerificationController extends Controller
                     'verified' => true
                 ]);
             } else {
+                $method = $verification->method === 'file_upload' ? 'file upload' : 'DNS';
                 return response()->json([
                     'success' => false,
-                    'message' => 'Domain ownership verification failed. Please check your DNS settings.',
+                    'message' => "Domain verification failed. Please ensure your {$method} verification is set up correctly.",
                     'verified' => false
                 ]);
             }
@@ -127,27 +145,127 @@ class DomainVerificationController extends Controller
     }
 
     /**
-     * Download verification file for file-based verification.
+     * Verify domain via file upload method.
+     */
+    public function verifyFile(Domain $domain): JsonResponse
+    {
+        $this->authorize('update', $domain);
+
+        try {
+            // Check if file verification is available
+            $instructions = $this->verificationService->getVerificationInstructions($domain);
+            
+            if (!isset($instructions['file_verification'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File verification is not available for this domain. Please use DNS verification method instead.',
+                    'verified' => false
+                ]);
+            }
+
+            $isVerified = $this->verificationService->verifyDomainByFile($domain);
+
+            if ($isVerified) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Domain ownership verified successfully via file upload!',
+                    'verified' => true
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File verification failed. Please ensure the verification file is uploaded correctly to: ' . $instructions['file_verification']['url'],
+                    'verified' => false
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File verification failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download verification file.
      */
     public function downloadFile(Domain $domain)
     {
         $this->authorize('view', $domain);
 
-        $instructions = $this->verificationService->getVerificationInstructions($domain);
-        
-        if (empty($instructions) || !isset($instructions['file_verification'])) {
+        try {
+            $verification = $this->verificationService->getVerificationRecord($domain);
+            
+            if (!$verification) {
+                // Auto-generate verification record if none exists
+                $verification = $this->verificationService->generateVerificationRecord($domain);
+            }
+
+            // Generate filename based on verification method
+            if ($verification->method === 'file_upload') {
+                $filename = 'verification.txt';
+                $content = $verification->token;
+                $contentType = 'text/plain';
+            } else {
+                // For DNS verification, still provide a file for manual verification
+                $filename = 'verification.txt';
+                $content = $verification->token;
+                $contentType = 'text/plain';
+            }
+
+            return response($content)
+                ->header('Content-Type', $contentType)
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'File verification not available for this domain'
+                'message' => 'Failed to download verification file: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    /**
+     * Switch verification method.
+     */
+    public function switchMethod(Domain $domain, Request $request): JsonResponse
+    {
+        $this->authorize('update', $domain);
+
+        $method = $request->input('method', 'dns_txt');
+        
+        if (!in_array($method, ['dns_txt', 'file_upload'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid verification method.'
             ], 400);
         }
 
-        $fileContent = $instructions['file_verification']['content'];
-        $filename = $instructions['file_verification']['filename'];
+        try {
+            // Delete existing verification records
+            $this->verificationService->regenerateVerification($domain);
+            
+            // Create new verification with specified method
+            $verification = $this->verificationService->generateVerificationRecord($domain);
+            
+            // Override method if needed
+            if ($method !== $verification->method) {
+                $verification->update(['method' => $method]);
+            }
+            
+            $instructions = $this->verificationService->getVerificationInstructions($domain);
 
-        return response($fileContent)
-            ->header('Content-Type', 'text/html')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification method switched successfully',
+                'instructions' => $instructions
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to switch verification method: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
