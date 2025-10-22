@@ -24,7 +24,10 @@ class EmailActivationMail extends Mailable
     {
         $this->email = $email;
         $this->token = $token;
-        $this->activationUrl = config('app.url') . '/register/activate/' . $token . '/' . urlencode($email);
+        
+        // Use production URL directly to avoid environment issues
+        $baseUrl = 'https://flippdeal.com';
+        $this->activationUrl = $baseUrl . '/register/activate/' . $token . '/' . urlencode($email);
     }
 
     /**

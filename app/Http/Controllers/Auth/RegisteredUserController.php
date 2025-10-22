@@ -76,14 +76,28 @@ class RegisteredUserController extends Controller
             \Log::error('Failed to send activation email', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
                 'environment' => config('app.env'),
                 'mail_driver' => config('mail.default'),
                 'smtp_host' => config('mail.mailers.smtp.host'),
-                'smtp_port' => config('mail.mailers.smtp.port')
+                'smtp_port' => config('mail.mailers.smtp.port'),
+                'app_url' => config('app.url')
             ]);
             
-            return back()->withErrors(['email' => 'Failed to send activation email. Please try again. If the problem persists, contact support.']);
+            // Return a more specific error message
+            $errorMessage = 'Failed to send activation email. ';
+            if (strpos($e->getMessage(), 'Connection') !== false) {
+                $errorMessage .= 'SMTP connection failed. ';
+            } elseif (strpos($e->getMessage(), 'route') !== false) {
+                $errorMessage .= 'URL generation failed. ';
+            } elseif (strpos($e->getMessage(), 'database') !== false) {
+                $errorMessage .= 'Database error. ';
+            }
+            $errorMessage .= 'Please try again or contact support.';
+            
+            return back()->withErrors(['email' => $errorMessage]);
         }
     }
 
