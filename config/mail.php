@@ -46,8 +46,10 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'encryption' => env('MAIL_ENCRYPTION', 'tls'),
-            'timeout' => null,
+            'timeout' => 30,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'verify_peer' => false,
+            'verify_peer_name' => false,
         ],
 
         'ses' => [

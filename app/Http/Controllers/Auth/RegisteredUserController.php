@@ -39,8 +39,22 @@ class RegisteredUserController extends Controller
             // Generate activation token
             $activationToken = EmailActivationToken::generateToken($request->email);
             
+            // Log the attempt
+            \Log::info('Attempting to send activation email', [
+                'email' => $request->email,
+                'token_id' => $activationToken->id,
+                'environment' => config('app.env'),
+                'mail_driver' => config('mail.default')
+            ]);
+            
             // Send activation email
             Mail::to($request->email)->send(new EmailActivationMail($request->email, $activationToken->token));
+            
+            // Log success
+            \Log::info('Activation email sent successfully', [
+                'email' => $request->email,
+                'token_id' => $activationToken->id
+            ]);
             
             // Store user data in session for activation
             session([
@@ -58,7 +72,18 @@ class RegisteredUserController extends Controller
             return redirect()->route('register.activate-email')->with('success', 'Activation email sent to your email address!');
             
         } catch (\Exception $e) {
-            return back()->withErrors(['email' => 'Failed to send activation email. Please try again.']);
+            // Log detailed error information
+            \Log::error('Failed to send activation email', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'environment' => config('app.env'),
+                'mail_driver' => config('mail.default'),
+                'smtp_host' => config('mail.mailers.smtp.host'),
+                'smtp_port' => config('mail.mailers.smtp.port')
+            ]);
+            
+            return back()->withErrors(['email' => 'Failed to send activation email. Please try again. If the problem persists, contact support.']);
         }
     }
 
