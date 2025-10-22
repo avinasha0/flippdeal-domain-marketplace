@@ -89,13 +89,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Public domain routes
-Route::get('/browse-domains', function () { 
-    return view('domains.public-index', [
-        'domains' => collect([]),
-        'categories' => collect([]),
-        'priceRanges' => collect([])
-    ]); 
-})->name('domains.public.index');
+Route::get('/browse-domains', [App\Http\Controllers\DomainController::class, 'publicIndex'])->name('domains.public.index');
 
 Route::get('/my-domains', [App\Http\Controllers\DomainController::class, 'index'])->name('my.domains.index');
 
