@@ -2,6 +2,23 @@
 
 @section('content')
 <div class="space-y-6">
+    <!-- Success Messages -->
+    @if (session('verified'))
+        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-green-800 dark:text-green-200">
+                        Your email has been verified successfully!
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
     <!-- Page Header -->
     <div class="md:flex md:items-center md:justify-between">
         <div class="flex-1 min-w-0">
@@ -141,12 +158,21 @@
                             </div>
                         </div>
                         @if (!$user->hasVerifiedEmail())
-                            <form method="post" action="{{ route('verification.send') }}">
-                                @csrf
-                                <button type="submit" class="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium px-3 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200">
-                                    Resend
-                                </button>
-                            </form>
+                            @if ($user->isFullyVerified())
+                                <form method="post" action="{{ route('verification.verify-email') }}">
+                                    @csrf
+                                    <button type="submit" class="text-sm text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 font-medium px-3 py-1 rounded-md hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors duration-200">
+                                        Verify Email
+                                    </button>
+                                </form>
+                            @else
+                                <form method="post" action="{{ route('verification.send') }}">
+                                    @csrf
+                                    <button type="submit" class="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 font-medium px-3 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200">
+                                        Resend
+                                    </button>
+                                </form>
+                            @endif
                         @endif
                     </div>
 

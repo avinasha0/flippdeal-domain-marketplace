@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
@@ -56,7 +56,12 @@ class User extends Authenticatable
         'company_name',
         'website',
         'location',
-        'social_links'
+        'social_links',
+        // Wallet fields
+        'wallet_balance',
+        'total_earnings',
+        'total_withdrawals',
+        'last_withdrawal_at'
     ];
 
     /**
@@ -95,7 +100,12 @@ class User extends Authenticatable
             // Additional profile field casts
             'social_links' => 'array',
             // Seller rating casts
-            'seller_rating_avg' => 'decimal:2'
+            'seller_rating_avg' => 'decimal:2',
+            // Wallet casts
+            'wallet_balance' => 'decimal:2',
+            'total_earnings' => 'decimal:2',
+            'total_withdrawals' => 'decimal:2',
+            'last_withdrawal_at' => 'datetime'
         ];
     }
 
@@ -566,6 +576,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Mark email as verified.
+     */
+    public function markEmailAsVerified(): void
+    {
+        $this->update([
+            'email_verified_at' => now()
+        ]);
+    }
+
+    /**
      * Reject government ID verification.
      */
     public function rejectGovernmentIdVerification(string $reason): void
@@ -674,5 +694,104 @@ class User extends Authenticatable
     public function incrementSalesCount(): void
     {
         $this->increment('total_sales_count');
+    }
+
+    /**
+     * Add funds to wallet
+     */
+    public function addToWallet(float $amount, string $description = null): void
+    {
+        $this->increment('wallet_balance', $amount);
+        $this->increment('total_earnings', $amount);
+        
+        // Log the transaction
+        $this->walletTransactions()->create([
+            'type' => 'credit',
+            'amount' => $amount,
+            'description' => $description ?? 'Funds added to wallet',
+            'status' => 'completed'
+        ]);
+    }
+
+    /**
+     * Withdraw funds from wallet
+     */
+    public function withdrawFromWallet(float $amount, string $description = null): bool
+    {
+        if ($this->wallet_balance < $amount) {
+            return false;
+        }
+
+        $this->decrement('wallet_balance', $amount);
+        $this->increment('total_withdrawals', $amount);
+        $this->update(['last_withdrawal_at' => now()]);
+        
+        // Log the transaction
+        $this->walletTransactions()->create([
+            'type' => 'debit',
+            'amount' => $amount,
+            'description' => $description ?? 'Funds withdrawn from wallet',
+            'status' => 'completed'
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Check if user can withdraw (minimum balance, verification, etc.)
+     */
+    public function canWithdraw(float $amount = null): bool
+    {
+        // Check if user is verified
+        if (!$this->is_verified || $this->account_status !== 'active') {
+            return false;
+        }
+
+        // Check minimum balance
+        if ($amount && $this->wallet_balance < $amount) {
+            return false;
+        }
+
+        // Check if user has PayPal verified for withdrawals
+        if (!$this->paypal_verified) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get wallet transactions
+     */
+    public function walletTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    /**
+     * Get recent wallet transactions
+     */
+    public function getRecentWalletTransactions($limit = 10)
+    {
+        return $this->walletTransactions()
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * Get wallet balance formatted
+     */
+    public function getFormattedWalletBalanceAttribute(): string
+    {
+        return '$' . number_format($this->wallet_balance, 2);
+    }
+
+    /**
+     * Get total earnings formatted
+     */
+    public function getFormattedTotalEarningsAttribute(): string
+    {
+        return '$' . number_format($this->total_earnings, 2);
     }
 }

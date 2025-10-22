@@ -12,7 +12,8 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <link href="{{ asset('build/assets/app-BANQcGNA.css') }}" rel="stylesheet">
+<script src="{{ asset('build/assets/app-DtCVKgHt.js') }}"></script>
         
         <!-- Alpine.js -->
         <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>

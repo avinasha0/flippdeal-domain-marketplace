@@ -78,6 +78,11 @@ class VerificationController extends Controller
             'paypal_verified_at' => now()
         ]);
 
+        // Also mark email as verified if not already verified
+        if (!$user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+        }
+
         // Log verification submission
         AuditLog::create([
             'user_id' => $user->id,
@@ -201,5 +206,46 @@ class VerificationController extends Controller
             'account_status' => $user->account_status,
             'verifications' => $user->verifications()->select('type', 'status', 'created_at')->get()
         ]);
+    }
+
+    /**
+     * Manually verify email for users who have completed profile verification.
+     */
+    public function verifyEmail()
+    {
+        $user = Auth::user();
+        
+        // Only allow if user has completed profile verification
+        if ($user->isFullyVerified() && !$user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            
+            return back()->with('success', 'Your email has been verified successfully!');
+        }
+        
+        return back()->with('error', 'Unable to verify email. Please complete your profile verification first.');
+    }
+
+    /**
+     * Send email verification to the user.
+     */
+    public function sendVerificationEmail()
+    {
+        $user = Auth::user();
+        
+        if ($user->hasVerifiedEmail()) {
+            return back()->with('info', 'Your email is already verified.');
+        }
+        
+        try {
+            // Generate verification code
+            $verificationCode = \App\Models\EmailVerificationCode::generateCode($user->email);
+            
+            // Send verification email
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\EmailVerificationMail($user->email, $verificationCode->code));
+            
+            return back()->with('success', 'Verification email sent! Please check your inbox.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to send verification email. Please try again.');
+        }
     }
 }

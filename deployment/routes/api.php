@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\ChecklistController;
+use App\Http\Controllers\RecentActivityController;
 
 /*
 |--------------------------------------------------------------------------
@@ -108,4 +109,11 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
     Route::delete('/{id}', [NotificationController::class, 'destroy']);
     Route::delete('/', [NotificationController::class, 'destroyAll']);
     Route::get('/statistics', [NotificationController::class, 'statistics']);
+});
+
+// Recent Activity API routes
+Route::middleware('auth:web')->prefix('activity')->group(function () {
+    Route::get('/', [RecentActivityController::class, 'index']);
+    Route::patch('/mark-read', [RecentActivityController::class, 'markAsRead']);
+    Route::patch('/mark-all-read', [RecentActivityController::class, 'markAllAsRead']);
 });

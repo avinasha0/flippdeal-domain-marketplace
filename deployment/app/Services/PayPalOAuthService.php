@@ -121,6 +121,11 @@ class PayPalOAuthService
                 'paypal_verified_at' => now()
             ]);
 
+            // Also mark email as verified if not already verified
+            if (!$user->hasVerifiedEmail()) {
+                $user->markEmailAsVerified();
+            }
+
             // Create verification record
             \App\Models\Verification::updateOrCreate(
                 [
