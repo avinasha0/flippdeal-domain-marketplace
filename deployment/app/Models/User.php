@@ -480,6 +480,14 @@ class User extends Authenticatable implements MustVerifyEmail
     // ==================== VERIFICATION METHODS ====================
 
     /**
+     * Check if user's email is verified.
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
      * Check if user's PayPal email is verified.
      */
     public function isPayPalVerified(): bool

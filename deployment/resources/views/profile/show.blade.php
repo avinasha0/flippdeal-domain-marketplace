@@ -205,7 +205,7 @@
                                             </a>
                                         </h4>
                                         <span class="text-lg font-bold text-green-600 dark:text-green-400">
-                                            ${{ number_format($domain->price) }}
+                                            ${{ number_format($domain->asking_price) }}
                                         </span>
                                     </div>
                                     @if($domain->description)
