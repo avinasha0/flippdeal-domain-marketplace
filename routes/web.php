@@ -153,6 +153,9 @@ Route::get('/profile', function () {
     ]); 
 })->name('profile.edit');
 
+// Public user profile route
+Route::get('/users/{user}/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('users.profile.show');
+
 Route::patch('/profile', function () { 
     return redirect()->back()->with('success', 'Profile updated!'); 
 })->name('profile.update');
@@ -276,6 +279,11 @@ Route::get('/conversations', function () {
 Route::get('/conversations/{conversation}', function ($conversation) { 
     return view('conversations.show', compact('conversation')); 
 })->name('conversations.show');
+
+Route::get('/conversations/new', function () { 
+    $userId = request('user_id');
+    return view('conversations.create', compact('userId')); 
+})->name('conversations.new');
 
 Route::get('/messages', function () { 
     $messages = new \Illuminate\Pagination\LengthAwarePaginator(
