@@ -484,6 +484,7 @@ Route::get('/watchlist', [App\Http\Controllers\WatchlistController::class, 'inde
 Route::post('/watchlist', [App\Http\Controllers\WatchlistController::class, 'store'])->name('watchlist.store');
 Route::delete('/watchlist', [App\Http\Controllers\WatchlistController::class, 'destroy'])->name('watchlist.destroy');
 Route::post('/watchlist/toggle', [App\Http\Controllers\WatchlistController::class, 'toggle'])->name('watchlist.toggle');
+Route::get('/watchlist/check', [App\Http\Controllers\WatchlistController::class, 'check'])->name('watchlist.check');
 
 Route::get('/favorites', function () { return view('favorites.index'); })->name('favorites.index');
 

@@ -713,26 +713,6 @@
                             </form>
                         </div>
 
-                        <!-- Add to Wishlist -->
-                        @auth
-                            @if(auth()->id() !== $domain->user_id)
-                                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-pink-200 dark:border-pink-800 hover:shadow-2xl transition-all duration-300">
-                                    <div class="text-center mb-4">
-                                        <h3 class="text-xl font-bold text-pink-900 dark:text-pink-100 mb-2">Add to Wishlist</h3>
-                                        <p class="text-sm text-pink-700 dark:text-pink-300 mt-1">Save this domain to your wishlist for later</p>
-                                    </div>
-                                    <button onclick="toggleWatchlist({{ $domain->id }})" 
-                                            class="w-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white px-6 py-4 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200"
-                                            id="watchlist-btn-{{ $domain->id }}">
-                                        <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                        </svg>
-                                        <span id="watchlist-text-{{ $domain->id }}">Add to Wishlist</span>
-                                    </button>
-                                </div>
-                            @endif
-                        @endauth
-
                         <!-- Verification Stepper (for domain owner) -->
                         @auth
                             @if(auth()->id() === $domain->user_id && $domain->status !== 'active')
@@ -992,8 +972,8 @@ function checkWatchlistStatus(domainId) {
 }
 
 function toggleWatchlist(domainId) {
-    const button = document.getElementById(`watchlist-btn-${domainId}`);
-    const text = document.getElementById(`watchlist-text-${domainId}`);
+    const button = document.getElementById('watchlist-btn');
+    const text = document.getElementById('watchlist-text');
     
     // Check if elements exist
     if (!button || !text) {
@@ -1018,7 +998,7 @@ function toggleWatchlist(domainId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            updateWatchlistButton(data.is_watching, domainId);
+            updateWatchlistButton(data.is_watching);
             // Show success message
             showNotification(data.message, 'success');
         } else {
@@ -1034,9 +1014,9 @@ function toggleWatchlist(domainId) {
     });
 }
 
-function updateWatchlistButton(isWatching, domainId) {
-    const button = document.getElementById(`watchlist-btn-${domainId}`);
-    const text = document.getElementById(`watchlist-text-${domainId}`);
+function updateWatchlistButton(isWatching) {
+    const button = document.getElementById('watchlist-btn');
+    const text = document.getElementById('watchlist-text');
     
     // Check if elements exist before trying to access them
     if (!button || !text) {
@@ -1045,11 +1025,11 @@ function updateWatchlistButton(isWatching, domainId) {
     }
     
     if (isWatching) {
-        button.className = button.className.replace('from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700', 'from-green-600 to-green-700 hover:from-green-700 hover:to-green-800');
-        text.textContent = 'Remove from Wishlist';
+        button.className = button.className.replace('border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20', 'border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30');
+        text.textContent = 'Remove from Watchlist';
     } else {
-        button.className = button.className.replace('from-green-600 to-green-700 hover:from-green-700 hover:to-green-800', 'from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700');
-        text.textContent = 'Add to Wishlist';
+        button.className = button.className.replace('border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30', 'border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20');
+        text.textContent = 'Add to Watchlist';
     }
 }
 
