@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background rounded rectangle for Apple touch icon -->
+  <rect x="0" y="0" width="180" height="180" rx="40" ry="40" fill="url(#grad1)" stroke="#1E40AF" stroke-width="8"/>
+  
+  <!-- Domain/globe icon -->
+  <path d="M90 36C58.32 36 32 62.32 32 94s26.32 58 58 58 58-26.32 58-58S121.68 36 90 36zm-5.5 107.58c-23.64-2.94-42-23.1-42-47.58 0-7.44.96-14.52 2.52-21.48L54 90v6c0 6.6 5.4 12 12 12v11.58zm41.4-15.24c-1.56-4.86-6-8.34-11.4-8.34h-6v-18c0-3.3-2.7-6-6-6H48v-12h12c3.3 0 6-2.7 6-6V42h12c6.6 0 12-5.4 12-12v-2.46c17.58 7.14 30 24.36 30 44.46 0 12.48-4.8 23.88-12.6 32.34z" fill="white" opacity="0.9"/>
+  
+  <!-- Money/coin symbol -->
+  <circle cx="126" cy="54" r="18" fill="#FCD34D" stroke="#F59E0B" stroke-width="6"/>
+  <text x="126" y="66" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#92400E">$</text>
+</svg>

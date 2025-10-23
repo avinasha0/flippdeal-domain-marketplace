@@ -39,7 +39,9 @@ class DomainVerificationService
 
         if ($verification) {
             $dnsInstructions = $this->generateDnsInstructions($verification->token, $domain->full_domain);
-            return [
+            $hasWebsite = $this->checkWebsiteStatus($domain->full_domain);
+            
+            $instructions = [
                 'method' => $verification->method,
                 'status' => $verification->status,
                 'token' => $verification->token,
@@ -47,14 +49,8 @@ class DomainVerificationService
                 'expires_at' => $verification->token_expires_at,
                 'created_at' => $verification->created_at,
                 'website_status' => [
-                    'has_website' => true, // Enable website verification by default
+                    'has_website' => $hasWebsite,
                     'url' => 'https://' . $domain->full_domain,
-                ],
-                'file_verification' => [
-                    'filename' => 'verification.txt',
-                    'url' => 'https://' . $domain->full_domain . '/verification.txt',
-                    'content' => $verification->token,
-                    'instructions' => 'Upload a file named verification.txt to your website root with the verification code.',
                 ],
                 'txt_record' => [
                     'type' => $dnsInstructions['dns_record_type'],
@@ -69,6 +65,18 @@ class DomainVerificationService
                     'instructions' => 'Alternative verification method using CNAME record. Point verify.yourdomain.com to verification.flippdeal.com',
                 ],
             ];
+
+            // Add file verification instructions if website is active
+            if ($hasWebsite) {
+                $instructions['file_verification'] = [
+                    'filename' => 'verification.txt',
+                    'url' => 'https://' . $domain->full_domain . '/verification.txt',
+                    'content' => $verification->token,
+                    'instructions' => 'Upload a file named verification.txt to your website root with the verification code.',
+                ];
+            }
+
+            return $instructions;
         }
 
         // Return default instructions for creating new verification
@@ -418,23 +426,201 @@ class DomainVerificationService
     {
         try {
             $instructions = $this->getVerificationInstructions($domain);
+            
+            // Check if file verification is available
+            if (!isset($instructions['file_verification'])) {
+                Log::info('File verification not available for domain: ' . $domain->full_domain);
+                return false;
+            }
+            
             $fileUrl = $instructions['file_verification']['url'];
+            $expectedContent = $instructions['file_verification']['content'];
             
             // Make HTTP request to check if file exists and contains correct content
-            $response = file_get_contents($fileUrl);
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 10,
+                    'method' => 'GET',
+                    'user_agent' => 'FlippDeal Domain Verifier/1.0',
+                ]
+            ]);
+            
+            $response = @file_get_contents($fileUrl, false, $context);
             
             if ($response === false) {
+                Log::info('File verification failed - file not accessible: ' . $fileUrl);
                 return false;
             }
             
             // Check if the file contains the verification code
-            $expectedContent = $instructions['file_verification']['content'];
-            return trim($response) === trim($expectedContent);
+            $isValid = trim($response) === trim($expectedContent);
+            
+            if ($isValid) {
+                // Mark domain as verified
+                $domain->update(['domain_verified' => true]);
+                
+                // Mark verification record as verified
+                $verification = $this->getVerificationRecord($domain);
+                if ($verification) {
+                    $verification->update([
+                        'status' => 'verified',
+                        'evidence' => [
+                            'verified_at' => now()->toISOString(),
+                            'method' => 'file_upload',
+                            'file_url' => $fileUrl,
+                            'file_content' => $response
+                        ]
+                    ]);
+                }
+                
+                Log::info('Domain verified successfully via file upload: ' . $domain->full_domain);
+            } else {
+                Log::info('File verification failed - content mismatch for: ' . $fileUrl);
+            }
+            
+            return $isValid;
             
         } catch (\Exception $e) {
             Log::error('File verification failed for domain ' . $domain->full_domain . ': ' . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Generate verification record for domain
+     */
+    public function generateVerificationRecord(Domain $domain): DomainVerification
+    {
+        // Check if domain already has a pending verification
+        $existingVerification = DomainVerification::where('domain_id', $domain->id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($existingVerification) {
+            return $existingVerification;
+        }
+
+        // Generate unique token
+        $token = Str::random(32);
+        $expiresAt = now()->addMinutes($this->tokenTtl);
+
+        // Check if domain has an active website
+        $hasWebsite = $this->checkWebsiteStatus($domain->full_domain);
+
+        // Create verification record with appropriate method
+        $verification = DomainVerification::create([
+            'domain_id' => $domain->id,
+            'method' => $hasWebsite ? 'file_upload' : 'dns_txt',
+            'token' => $token,
+            'token_expires_at' => $expiresAt,
+            'status' => 'pending',
+            'attempts' => 0,
+        ]);
+
+        return $verification;
+    }
+
+    /**
+     * Check if domain has an active website
+     */
+    private function checkWebsiteStatus(string $domain): bool
+    {
+        try {
+            $url = 'https://' . $domain;
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 10,
+                    'method' => 'HEAD',
+                    'user_agent' => 'FlippDeal Domain Verifier/1.0',
+                ]
+            ]);
+            
+            $headers = @get_headers($url, 1, $context);
+            return $headers && strpos($headers[0], '200') !== false;
+        } catch (\Exception $e) {
+            Log::info('Website status check failed for domain: ' . $domain, ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Regenerate verification record
+     */
+    public function regenerateVerification(Domain $domain): DomainVerification
+    {
+        // Delete existing verification records
+        DomainVerification::where('domain_id', $domain->id)
+            ->where('status', 'pending')
+            ->delete();
+
+        // Generate new verification record
+        return $this->generateVerificationRecord($domain);
+    }
+
+    /**
+     * Verify domain ownership
+     */
+    public function verifyDomainOwnership(Domain $domain): bool
+    {
+        $verification = $this->getVerificationRecord($domain);
+        
+        if (!$verification) {
+            Log::info('No verification record found for domain: ' . $domain->full_domain);
+            return false;
+        }
+
+        // Check verification based on method
+        if ($verification->method === 'file_upload') {
+            return $this->verifyDomainByFile($domain);
+        } else {
+            // Check DNS verification
+            $dnsResult = $this->checkDnsVerification($verification);
+            
+            if ($dnsResult['success'] && $dnsResult['verified']) {
+                // Mark domain as verified
+                $domain->update(['domain_verified' => true]);
+                
+                // Mark verification record as verified
+                $verification->update([
+                    'status' => 'verified',
+                    'evidence' => [
+                        'verified_at' => now()->toISOString(),
+                        'method' => 'dns_txt',
+                        'dns_records_found' => $dnsResult['dns_records_found'] ?? []
+                    ]
+                ]);
+                
+                Log::info('Domain verified successfully via DNS: ' . $domain->full_domain);
+                return true;
+            }
+        }
+
+        Log::info('Domain verification failed for: ' . $domain->full_domain);
+        return false;
+    }
+
+    /**
+     * Get verification record for domain
+     */
+    public function getVerificationRecord(Domain $domain): ?DomainVerification
+    {
+        return DomainVerification::where('domain_id', $domain->id)
+            ->where('status', 'pending')
+            ->first();
+    }
+
+    /**
+     * Check if verification is expired
+     */
+    public function isVerificationExpired(Domain $domain): bool
+    {
+        $verification = $this->getVerificationRecord($domain);
+        
+        if (!$verification) {
+            return true;
+        }
+        
+        return $verification->token_expires_at < now();
     }
 
     /**

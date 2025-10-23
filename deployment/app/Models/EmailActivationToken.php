@@ -12,7 +12,8 @@ class EmailActivationToken extends Model
         'email',
         'token',
         'expires_at',
-        'used'
+        'used',
+        'pending_user_data'
     ];
 
     protected $casts = [
@@ -20,7 +21,7 @@ class EmailActivationToken extends Model
         'used' => 'boolean'
     ];
 
-    public static function generateToken($email)
+    public static function generateTokenWithData($email, $userData)
     {
         // Delete any existing tokens for this email
         self::where('email', $email)->delete();
@@ -28,11 +29,12 @@ class EmailActivationToken extends Model
         // Generate a secure random token
         $token = Str::random(64);
         
-        // Create new token with 24 hours expiry
+        // Create new token with 24 hours expiry and user data
         return self::create([
             'email' => $email,
             'token' => $token,
-            'expires_at' => Carbon::now()->addHours(24)
+            'expires_at' => Carbon::now()->addHours(24),
+            'pending_user_data' => json_encode($userData)
         ]);
     }
 

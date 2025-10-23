@@ -13,15 +13,20 @@ class ActivityManager {
      * Initialize the activity manager
      */
     init() {
+        console.log('ActivityManager: Initializing...');
+        
         if (this.isInitialized) {
+            console.log('ActivityManager: Already initialized');
             return;
         }
 
         this.container = document.getElementById('activity-container');
         if (!this.container) {
-            console.warn('Activity container not found');
+            console.warn('ActivityManager: Activity container not found');
             return;
         }
+
+        console.log('ActivityManager: Container found:', this.container);
 
         // Initialize Laravel Echo if available
         this.initializeEcho();
@@ -33,6 +38,7 @@ class ActivityManager {
         this.loadActivities();
         
         this.isInitialized = true;
+        console.log('ActivityManager: Initialization complete');
     }
 
     /**
@@ -71,7 +77,7 @@ class ActivityManager {
      */
     async loadActivities() {
         try {
-            console.log('Loading activities...');
+            console.log('ActivityManager: Loading activities...');
             
             // Try the alternative route first (without CSRF)
             let response = await fetch('/activity-data', {
@@ -83,10 +89,10 @@ class ActivityManager {
                 credentials: 'same-origin'
             });
             
-            console.log('Response status:', response.status);
+            console.log('ActivityManager: Response status:', response.status);
             
             if (!response.ok) {
-                console.log('Trying API route with CSRF...');
+                console.log('ActivityManager: Trying API route with CSRF...');
                 // Fallback to API route with CSRF
                 response = await fetch('/api/activity', {
                     method: 'GET',
@@ -98,21 +104,21 @@ class ActivityManager {
                     credentials: 'same-origin'
                 });
                 
-                console.log('API Response status:', response.status);
+                console.log('ActivityManager: API Response status:', response.status);
             }
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Error response:', errorText);
+                console.error('ActivityManager: Error response:', errorText);
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             
             const data = await response.json();
-            console.log('Activities data:', data);
-            this.displayActivities(data.activities);
+            console.log('ActivityManager: Activities data:', data);
+            this.displayActivities(data.activities || []);
             
         } catch (error) {
-            console.error('Error loading activities:', error);
+            console.error('ActivityManager: Error loading activities:', error);
             this.displayError('Failed to load recent activities: ' + error.message);
         }
     }

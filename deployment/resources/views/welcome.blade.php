@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Buy & Sell Domains & Websites')
+@section('description', 'FlippDeal is the premier marketplace for buying and selling domains and websites. Turn your investments into profits with our secure platform featuring escrow protection, instant transfers, and verified listings.')
+@section('keywords', 'domain marketplace, buy domains, sell domains, domain flipping, website marketplace, domain investment, premium domains, domain auction, escrow service, domain broker, website broker, digital assets, domain portfolio')
 
 @section('content')
 @php

@@ -1,5 +1,7 @@
 <x-guest-layout>
     @section('title', 'Sign In')
+    @section('description', 'Sign in to your FlippDeal account to access your domain marketplace dashboard, manage listings, and start buying or selling domains.')
+    @section('keywords', 'login, sign in, domain marketplace login, FlippDeal login, user account, marketplace access')
     
     <div class="space-y-6">
         <!-- Header -->

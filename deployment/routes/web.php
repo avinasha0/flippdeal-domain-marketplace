@@ -11,7 +11,15 @@ require __DIR__.'/auth.php';
 
 // Basic routes
 Route::get('/', function () {
-    return view('welcome');
+    // Get published domains for the home page
+    $publishedDomains = \App\Models\Domain::where('status', 'active')
+        ->where('domain_verified', true)
+        ->with('user')
+        ->orderBy('created_at', 'desc')
+        ->limit(6)
+        ->get();
+    
+    return view('welcome', compact('publishedDomains'));
 });
 
 // Login routes - FIXED with POST
@@ -31,7 +39,7 @@ Route::post('/login', function () {
     return back()->withErrors([
         'email' => 'The provided credentials do not match our records.',
     ])->onlyInput('email');
-})->name('login');
+})->name('login.post');
 
 Route::get('/register', function () {
     return view('auth.register');
@@ -53,32 +61,37 @@ Route::post('/logout', function () {
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
 
 // Domain routes
-Route::get('/domains/create', function () { return view('domains.create'); })->name('domains.create');
-Route::post('/domains', function () { return redirect('/domains/create')->with('success', 'Domain created!'); })->name('domains.store');
-Route::get('/domains/{domain}/edit', function ($domain) { return view('domains.edit', compact('domain')); })->name('domains.edit');
-Route::get('/domains/{domain}/verification', function ($domain) { return view('domains.verification', compact('domain')); })->name('domains.verification');
-Route::post('/domains/{domain}/publish', function ($domain) { return redirect()->back()->with('success', 'Domain published!'); })->name('domains.publish');
-Route::post('/domains/{domain}/change-to-draft', function ($domain) { return redirect()->back()->with('success', 'Domain changed to draft!'); })->name('domains.change-to-draft');
-Route::delete('/domains/{domain}', function ($domain) { return redirect()->back()->with('success', 'Domain deleted!'); })->name('domains.destroy');
-Route::post('/domains/{domain}/mark-sold', function ($domain) { return redirect()->back()->with('success', 'Domain marked as sold!'); })->name('domains.mark-sold');
-Route::post('/domains/{domain}/deactivate', function ($domain) { return redirect()->back()->with('success', 'Domain deactivated!'); })->name('domains.deactivate');
-Route::post('/domains/{domain}/buy', function ($domain) { return redirect()->back()->with('success', 'Domain purchase initiated!'); })->name('domains.buy');
+Route::middleware('auth')->group(function () {
+    Route::get('/domains/create', [App\Http\Controllers\DomainController::class, 'create'])->name('domains.create');
+    Route::post('/domains', [App\Http\Controllers\DomainController::class, 'store'])->name('domains.store');
+    Route::get('/domains/{domain}', [App\Http\Controllers\DomainController::class, 'show'])->name('domains.show');
+    Route::get('/domains/{domain}/edit', [App\Http\Controllers\DomainController::class, 'edit'])->name('domains.edit');
+    Route::patch('/domains/{domain}', [App\Http\Controllers\DomainController::class, 'update'])->name('domains.update');
+    Route::get('/domains/{domain}/verification', [App\Http\Controllers\DomainVerificationController::class, 'show'])->name('domains.verification');
+    Route::post('/domains/{domain}/verification/generate', [App\Http\Controllers\DomainVerificationController::class, 'generate'])->name('domains.verification.generate');
+    Route::post('/domains/{domain}/verification/verify', [App\Http\Controllers\DomainVerificationController::class, 'verify'])->name('domains.verification.verify');
+    Route::post('/domains/{domain}/verification/regenerate', [App\Http\Controllers\DomainVerificationController::class, 'regenerate'])->name('domains.verification.regenerate');
+    Route::post('/domains/{domain}/verification/verify-file', [App\Http\Controllers\DomainVerificationController::class, 'verifyFile'])->name('domains.verification.verify-file');
+    Route::get('/domains/{domain}/verification/download-file', [App\Http\Controllers\DomainVerificationController::class, 'downloadFile'])->name('domains.verification.download-file');
+    Route::post('/domains/{domain}/verification/switch-method', [App\Http\Controllers\DomainVerificationController::class, 'switchMethod'])->name('domains.verification.switch-method');
+    Route::post('/domains/{domain}/publish', [App\Http\Controllers\DomainController::class, 'publish'])->name('domains.publish');
+    // Gracefully handle direct GET to publish URL by redirecting back with message
+    Route::get('/domains/{domain}/publish', function (\App\Models\Domain $domain) {
+        return redirect()
+            ->route('domains.show', $domain)
+            ->with('error', 'Publishing must be submitted via the Publish button.');
+    })->name('domains.publish.get');
+    Route::post('/domains/{domain}/change-to-draft', [App\Http\Controllers\DomainController::class, 'changeToDraft'])->name('domains.change-to-draft');
+    Route::delete('/domains/{domain}', [App\Http\Controllers\DomainController::class, 'destroy'])->name('domains.destroy');
+    Route::post('/domains/{domain}/mark-sold', [App\Http\Controllers\DomainController::class, 'markAsSold'])->name('domains.mark-sold');
+    Route::post('/domains/{domain}/deactivate', [App\Http\Controllers\DomainController::class, 'deactivate'])->name('domains.deactivate');
+    Route::post('/domains/{domain}/buy', [App\Http\Controllers\DomainController::class, 'buy'])->name('domains.buy');
+});
 
 // Public domain routes
-Route::get('/browse-domains', function () { 
-    return view('domains.public-index', [
-        'domains' => collect([]),
-        'categories' => collect([]),
-        'priceRanges' => collect([])
-    ]); 
-})->name('domains.public.index');
+Route::get('/browse-domains', [App\Http\Controllers\DomainController::class, 'publicIndex'])->name('domains.public.index');
 
-Route::get('/my-domains', function () { 
-    return view('domains.index', [
-        'domains' => collect([]),
-        'status' => request('status', 'all')
-    ]); 
-})->name('my.domains.index');
+Route::get('/my-domains', [App\Http\Controllers\DomainController::class, 'index'])->name('my.domains.index');
 
 // Admin routes
 Route::get('/admin', function () { return view('admin.dashboard'); })->name('admin.dashboard');
@@ -139,6 +152,9 @@ Route::get('/profile', function () {
         'user' => auth()->user()
     ]); 
 })->name('profile.edit');
+
+// Public user profile route
+Route::get('/users/{user}/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('users.profile.show');
 
 Route::patch('/profile', function () { 
     return redirect()->back()->with('success', 'Profile updated!'); 
@@ -226,7 +242,7 @@ Route::post('/verification/paypal', function () {
     
     return redirect()->route('verification.paypal')->with('success', 'PayPal email has been added and verified successfully!');
 })->name('verification.paypal.submit')->middleware('auth');
-Route::post('/verification/send', [App\Http\Controllers\VerificationController::class, 'sendVerificationEmail'])->name('verification.send');
+Route::post('/verification/send', [App\Http\Controllers\VerificationController::class, 'sendVerificationEmail'])->name('verification.send.custom');
 Route::post('/verification/verify-email', [App\Http\Controllers\VerificationController::class, 'verifyEmail'])->name('verification.verify-email');
 
 // PayPal routes
@@ -246,22 +262,108 @@ Route::middleware('auth')->group(function () {
 
 // Communication routes - FIXED with proper pagination
 Route::get('/conversations', function () { 
-    $conversations = new \Illuminate\Pagination\LengthAwarePaginator(
-        collect([]),
-        0,
-        15,
-        1,
-        ['path' => request()->url()]
-    );
+    $user = auth()->user();
+    
+    // Get conversations where user is either buyer or seller
+    $conversations = \App\Models\Conversation::with(['buyer', 'seller', 'latestMessage'])
+        ->where('buyer_id', $user->id)
+        ->orWhere('seller_id', $user->id)
+        ->orderBy('last_message_at', 'desc')
+        ->paginate(15);
+    
+    // Calculate unread count
+    $unreadCount = $user->getUnreadConversationCountAttribute();
     
     return view('conversations.index', [
         'conversations' => $conversations,
-        'unreadCount' => 0
+        'unreadCount' => $unreadCount
     ]); 
 })->name('conversations.index');
 
+// Temporary redirect for old URL - remove after deployment
+Route::get('/conversations/new', function () { 
+    $userId = request('user_id');
+    return redirect('/conversations/create?user_id=' . $userId);
+});
+
+// This route MUST come before the {conversation} route
+Route::get('/conversations/create', function () { 
+    $userId = request('user_id');
+    return view('conversations.create', compact('userId')); 
+})->name('conversations.new');
+
+Route::post('/conversations', function () { 
+    $request = request();
+    
+    // Validate the request
+    $request->validate([
+        'recipient_id' => 'required|exists:users,id',
+        'subject' => 'required|string|max:255',
+        'message' => 'required|string|max:5000',
+    ]);
+    
+    $sender = auth()->user();
+    $recipient = \App\Models\User::findOrFail($request->recipient_id);
+    
+    // Check if conversation already exists between these users
+    $existingConversation = \App\Models\Conversation::where(function($query) use ($sender, $recipient) {
+        $query->where('buyer_id', $sender->id)->where('seller_id', $recipient->id);
+    })->orWhere(function($query) use ($sender, $recipient) {
+        $query->where('buyer_id', $recipient->id)->where('seller_id', $sender->id);
+    })->first();
+    
+    if ($existingConversation) {
+        // Add message to existing conversation
+        $conversation = $existingConversation;
+    } else {
+        // Create new conversation
+        // Use a default domain ID for general conversations (domain_id is required by schema)
+        $defaultDomainId = \App\Models\Domain::first()->id ?? 1;
+        
+        $conversation = \App\Models\Conversation::create([
+            'domain_id' => $defaultDomainId, // Required field - using first available domain
+            'buyer_id' => $sender->id,
+            'seller_id' => $recipient->id,
+            'subject' => $request->subject,
+            'last_message_at' => now(),
+            'buyer_unread_count' => 0,
+            'seller_unread_count' => 1, // Recipient has 1 unread message
+        ]);
+    }
+    
+    // Create the message
+    \App\Models\Message::create([
+        'conversation_id' => $conversation->id,
+        'domain_id' => $conversation->domain_id, // Use same domain as conversation
+        'sender_id' => $sender->id,
+        'receiver_id' => $recipient->id,
+        'from_user_id' => $sender->id,
+        'to_user_id' => $recipient->id,
+        'subject' => $request->subject,
+        'body' => $request->message,
+        'message' => $request->message, // Legacy field
+        'is_read' => false,
+    ]);
+    
+    // Update conversation's last message time
+    $conversation->update(['last_message_at' => now()]);
+    
+    return redirect()->route('conversations.show', $conversation->id)->with('success', 'Message sent successfully!'); 
+})->name('conversations.store');
+
+// This route MUST come after the /new route
 Route::get('/conversations/{conversation}', function ($conversation) { 
-    return view('conversations.show', compact('conversation')); 
+    $conversation = \App\Models\Conversation::with(['buyer', 'seller', 'messages.sender', 'domain'])
+        ->findOrFail($conversation);
+    
+    // Mark messages as read for the current user
+    $conversation->markAsReadForUser(auth()->id());
+    
+    // Determine the other user in the conversation
+    $currentUserId = auth()->id();
+    $otherUser = $conversation->buyer_id === $currentUserId ? $conversation->seller : $conversation->buyer;
+    
+    return view('conversations.show', compact('conversation', 'otherUser')); 
 })->name('conversations.show');
 
 Route::get('/messages', function () { 
@@ -341,13 +443,13 @@ Route::get('/help/domain-transfer', function () { return view('help.domain-trans
 Route::get('/help/domain-verification', function () { return view('help.domain-verification'); })->name('help.domain-verification');
 Route::get('/support/contact', function () { return view('support.contact'); })->name('support.contact');
 
-// Password reset routes
-Route::get('/forgot-password', function () { return view('auth.forgot-password'); })->name('password.request');
-Route::post('/forgot-password', function () { return redirect()->back()->with('success', 'Password reset email sent!'); })->name('password.email');
-Route::get('/reset-password/{token}', function ($token) { return view('auth.reset-password', compact('token')); })->name('password.reset');
-Route::post('/reset-password', function () { return redirect('/login')->with('success', 'Password reset successfully!'); })->name('password.update');
+// Password reset routes - Enhanced with custom implementation
+Route::get('/forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'create'])->name('password.request');
+Route::post('/forgot-password', [App\Http\Controllers\Auth\PasswordResetLinkController::class, 'store'])->name('password.email');
+Route::get('/reset-password/{token}', [App\Http\Controllers\Auth\NewPasswordController::class, 'create'])->name('password.reset');
+Route::post('/reset-password', [App\Http\Controllers\Auth\NewPasswordController::class, 'store'])->name('password.store');
 Route::get('/confirm-password', function () { return view('auth.confirm-password'); })->name('password.confirm');
-Route::post('/confirm-password', function () { return redirect()->back()->with('success', 'Password confirmed!'); })->name('password.store');
+Route::post('/confirm-password', function () { return redirect()->back()->with('success', 'Password confirmed!'); })->name('password.confirm.store');
 
 // Token route
 Route::get('/token', function () { return response()->json(['token' => csrf_token()]); })->name('token');

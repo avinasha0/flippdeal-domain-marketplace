@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@section('title', 'Edit Profile')
+@section('description', 'Update your FlippDeal profile information, verification details, and account settings to enhance your marketplace presence.')
+@section('keywords', 'edit profile, update profile, account settings, user profile, marketplace profile, verification settings')
+
 @section('content')
 <div class="space-y-6">
     <!-- Success Messages -->

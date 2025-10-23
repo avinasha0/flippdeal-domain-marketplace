@@ -1,2 +1,24 @@
 User-agent: *
-Disallow:
+Allow: /
+
+# Allow all pages except admin and private areas
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /verification/
+Disallow: /wallet/
+Disallow: /orders/
+Disallow: /offers/
+Disallow: /bids/
+Disallow: /conversations/
+Disallow: /watchlist/
+Disallow: /notifications/
+Disallow: /help/
+
+# Allow public domain listings
+Allow: /domains/
+Allow: /auth/login
+Allow: /auth/register
+
+# Sitemap
+Sitemap: {{ url('/sitemap.xml') }}

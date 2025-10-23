@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Wallet & Earnings')
+@section('description', 'Manage your FlippDeal wallet, track earnings from domain sales, and handle payments securely with our integrated wallet system.')
+@section('keywords', 'wallet, earnings, payments, domain sales revenue, marketplace wallet, secure payments, transaction history')
 
 @section('content')
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">

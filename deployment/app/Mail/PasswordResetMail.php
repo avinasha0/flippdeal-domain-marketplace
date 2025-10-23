@@ -9,25 +9,22 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class EmailActivationMail extends Mailable
+class PasswordResetMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $email;
     public $token;
-    public $activationUrl;
+    public $email;
+    public $user;
 
     /**
      * Create a new message instance.
      */
-    public function __construct($email, $token)
+    public function __construct($token, $email, $user = null)
     {
-        $this->email = $email;
         $this->token = $token;
-        
-        // Use production URL directly to avoid environment issues
-        $baseUrl = 'https://flippdeal.com';
-        $this->activationUrl = $baseUrl . '/register/activate/' . $token . '/' . urlencode($email);
+        $this->email = $email;
+        $this->user = $user;
     }
 
     /**
@@ -36,7 +33,7 @@ class EmailActivationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Activate Your Account - FlippDeal',
+            subject: 'Reset Your FlippDeal Password',
         );
     }
 
@@ -46,13 +43,25 @@ class EmailActivationMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.activation',
+            view: 'emails.password-reset',
             with: [
-                'email' => $this->email,
                 'token' => $this->token,
-                'activationUrl' => $this->activationUrl
+                'email' => $this->email,
+                'user' => $this->user,
+                'resetUrl' => $this->getResetUrl(),
             ]
         );
+    }
+
+    /**
+     * Get the reset URL for the password reset.
+     */
+    private function getResetUrl(): string
+    {
+        return url(route('password.reset', [
+            'token' => $this->token,
+            'email' => $this->email,
+        ], false));
     }
 
     /**

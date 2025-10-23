@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Browse Domains')
+@section('description', 'Browse premium domains and websites for sale on FlippDeal marketplace. Find domains with websites, traffic, and high investment potential. Secure transactions with escrow protection.')
+@section('keywords', 'browse domains, domain listings, premium domains for sale, domain marketplace, domain search, domain catalog, website domains, traffic domains, investment domains')
 
 @section('content')
 @php

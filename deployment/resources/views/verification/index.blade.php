@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@section('title', 'Profile Verification')
+@section('description', 'Complete your FlippDeal profile verification to unlock all marketplace features, increase trust, and access premium selling tools.')
+@section('keywords', 'profile verification, account verification, identity verification, marketplace verification, trust badge, verified seller')
+
 @section('content')
 <div class="py-12">
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">

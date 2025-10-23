@@ -1,5 +1,7 @@
 <x-guest-layout>
     @section('title', 'Create Account')
+    @section('description', 'Join FlippDeal marketplace to buy and sell domains. Create your free account and start your domain flipping journey with secure transactions and verified listings.')
+    @section('keywords', 'register, create account, domain marketplace registration, FlippDeal signup, join marketplace, domain trading account')
     
     <div class="space-y-6">
         <!-- Header -->

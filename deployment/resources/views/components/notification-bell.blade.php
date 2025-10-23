@@ -88,23 +88,37 @@ function notificationBell() {
         },
         
         loadNotifications() {
-            fetch('/api/notifications/recent')
-                .then(response => response.json())
+            fetch('/api/v1/notifications/recent', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     this.notifications = data.notifications || [];
                     this.unreadCount = data.unread_count || 0;
                 })
                 .catch(error => {
                     console.error('Error loading notifications:', error);
+                    this.notifications = [];
+                    this.unreadCount = 0;
                 });
         },
         
         markAsRead(notificationId) {
-            fetch(`/api/notifications/${notificationId}/read`, {
+            fetch(`/api/v1/notifications/${notificationId}/read`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             })
             .then(response => response.json())

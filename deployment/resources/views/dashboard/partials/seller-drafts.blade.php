@@ -35,7 +35,6 @@
                     @if(auth()->user()->isFullyVerified())
                         <form action="{{ route('domains.publish', $domain) }}" method="POST" class="inline">
                             @csrf
-                            @method('PATCH')
                             <button type="submit" 
                                     class="inline-flex items-center px-3 py-2 border border-green-300 dark:border-green-600 text-sm font-medium rounded-lg text-green-700 dark:text-green-300 bg-white dark:bg-gray-600 hover:bg-green-50 dark:hover:bg-green-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
                                 Publish
