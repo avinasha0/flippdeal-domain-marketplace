@@ -419,6 +419,39 @@ class Domain extends Model
     }
 
     /**
+     * Check if domain is ready for public listing (has all required fields).
+     */
+    public function isReadyForPublicListing(): bool
+    {
+        // Basic requirements
+        if (!$this->domain_name || !$this->domain_extension || !$this->asking_price) {
+            return false;
+        }
+
+        // Domain verification requirement
+        if (!$this->domain_verified) {
+            return false;
+        }
+
+        // If bidding is enabled, it must be properly configured
+        if ($this->enable_bidding && !$this->isReadyForBidding()) {
+            return false;
+        }
+
+        // If buy now is enabled, it must have a price
+        if ($this->enable_buy_now && !$this->buy_now_price) {
+            return false;
+        }
+
+        // If offers are enabled, minimum offer should be set
+        if ($this->enable_offers && $this->minimum_offer && $this->minimum_offer < 0.01) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Check if domain is in auction mode.
      */
     public function isAuction(): bool
@@ -890,9 +923,15 @@ class Domain extends Model
                 $domain->slug = $domain->generateSlug();
             }
             
-            // Prevent setting status to 'active' without domain verification
-            if ($domain->isDirty('status') && $domain->status === 'active' && !$domain->domain_verified) {
-                throw new \Exception('Domain must be verified before it can be published.');
+            // Prevent setting status to 'active' without proper validation
+            if ($domain->isDirty('status') && $domain->status === 'active') {
+                if (!$domain->domain_verified) {
+                    throw new \Exception('Domain must be verified before it can be published.');
+                }
+                
+                if (!$domain->isReadyForPublicListing()) {
+                    throw new \Exception('Domain is not ready for public listing. Please complete all required fields and configurations.');
+                }
             }
         });
     }

@@ -29,11 +29,31 @@ class DomainController extends Controller
      */
     public function publicIndex()
     {
-        $domains = Domain::where('status', 'active')
-            ->whereHas('user') // Only get domains that have a valid user
-            ->with('user')
-            ->latest()
-            ->paginate(12);
+        // Get all active, verified domains with valid users
+        $query = Domain::where('status', 'active')
+            ->whereHas('user')
+            ->where('domain_verified', true)
+            ->with('user');
+            
+        // Apply additional filtering for domains ready for public listing
+        $domains = $query->get()->filter(function ($domain) {
+            return $domain->isReadyForPublicListing();
+        });
+        
+        // Convert back to paginated collection
+        $perPage = 12;
+        $currentPage = request()->get('page', 1);
+        $offset = ($currentPage - 1) * $perPage;
+        $items = $domains->slice($offset, $perPage)->values();
+        
+        $domains = new \Illuminate\Pagination\LengthAwarePaginator(
+            $items,
+            $domains->count(),
+            $perPage,
+            $currentPage,
+            ['path' => request()->url()]
+        );
+            
         return view('domains.public-index', compact('domains'));
     }
 
