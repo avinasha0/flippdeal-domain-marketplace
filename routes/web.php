@@ -317,8 +317,11 @@ Route::post('/conversations', function () {
         $conversation = $existingConversation;
     } else {
         // Create new conversation
+        // Use a default domain ID for general conversations (domain_id is required by schema)
+        $defaultDomainId = \App\Models\Domain::first()->id ?? 1;
+        
         $conversation = \App\Models\Conversation::create([
-            'domain_id' => null, // General conversation, not about a specific domain
+            'domain_id' => $defaultDomainId, // Required field - using first available domain
             'buyer_id' => $sender->id,
             'seller_id' => $recipient->id,
             'subject' => $request->subject,
@@ -331,7 +334,7 @@ Route::post('/conversations', function () {
     // Create the message
     \App\Models\Message::create([
         'conversation_id' => $conversation->id,
-        'domain_id' => null, // General conversation, not about a specific domain
+        'domain_id' => $conversation->domain_id, // Use same domain as conversation
         'sender_id' => $sender->id,
         'receiver_id' => $recipient->id,
         'from_user_id' => $sender->id,
