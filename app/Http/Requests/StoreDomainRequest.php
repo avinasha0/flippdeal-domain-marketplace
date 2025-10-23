@@ -67,17 +67,25 @@ class StoreDomainRequest extends FormRequest
                     $validator->errors()->add('buy_now_price', 'Buy Now price is required when Buy Now is enabled.');
                 }
                 
-                // Buy Now price should be higher than asking price
-                if ($this->filled('buy_now_price') && $this->filled('asking_price')) {
-                    if ($this->buy_now_price <= $this->asking_price) {
-                        $validator->errors()->add('buy_now_price', 'Buy Now price should be higher than the asking price.');
-                    }
+                // Buy Now price should be reasonable (not required to be higher than asking price)
+                if ($this->filled('buy_now_price') && $this->buy_now_price < 0.01) {
+                    $validator->errors()->add('buy_now_price', 'Buy Now price must be at least $0.01.');
                 }
             }
             
             // Make An Offer validation
             if ($this->boolean('enable_offers')) {
-                // Maximum offer should be higher than minimum offer
+                // Minimum offer validation
+                if ($this->filled('minimum_offer') && $this->minimum_offer < 0.01) {
+                    $validator->errors()->add('minimum_offer', 'Minimum offer must be at least $0.01.');
+                }
+                
+                // Maximum offer validation
+                if ($this->filled('maximum_offer') && $this->maximum_offer < 0.01) {
+                    $validator->errors()->add('maximum_offer', 'Maximum offer must be at least $0.01.');
+                }
+                
+                // Maximum offer should be higher than minimum offer (only if both are provided)
                 if ($this->filled('minimum_offer') && $this->filled('maximum_offer')) {
                     if ($this->maximum_offer <= $this->minimum_offer) {
                         $validator->errors()->add('maximum_offer', 'Maximum offer should be higher than minimum offer.');
@@ -90,7 +98,11 @@ class StoreDomainRequest extends FormRequest
                         $validator->errors()->add('auto_accept_threshold', 'Auto-accept threshold is required when auto-accept is enabled.');
                     }
                     
-                    // Auto-accept threshold should be higher than minimum offer
+                    if ($this->filled('auto_accept_threshold') && $this->auto_accept_threshold < 0.01) {
+                        $validator->errors()->add('auto_accept_threshold', 'Auto-accept threshold must be at least $0.01.');
+                    }
+                    
+                    // Auto-accept threshold should be higher than minimum offer (only if minimum offer is provided)
                     if ($this->filled('auto_accept_threshold') && $this->filled('minimum_offer')) {
                         if ($this->auto_accept_threshold <= $this->minimum_offer) {
                             $validator->errors()->add('auto_accept_threshold', 'Auto-accept threshold should be higher than minimum offer.');
@@ -101,23 +113,23 @@ class StoreDomainRequest extends FormRequest
             
             // Bidding validation
             if ($this->boolean('enable_bidding')) {
-                // Starting bid should be lower than asking price
-                if ($this->filled('starting_bid') && $this->filled('asking_price')) {
-                    if ($this->starting_bid >= $this->asking_price) {
-                        $validator->errors()->add('starting_bid', 'Starting bid should be lower than the asking price.');
-                    }
+                if (!$this->filled('starting_bid')) {
+                    $validator->errors()->add('starting_bid', 'Starting bid is required when bidding is enabled.');
                 }
                 
-                // Reserve price should be between starting bid and asking price
+                if ($this->filled('starting_bid') && $this->starting_bid < 0.01) {
+                    $validator->errors()->add('starting_bid', 'Starting bid must be at least $0.01.');
+                }
+                
+                // Reserve price validation
+                if ($this->filled('reserve_price') && $this->reserve_price < 0.01) {
+                    $validator->errors()->add('reserve_price', 'Reserve price must be at least $0.01.');
+                }
+                
+                // Reserve price should be at least the starting bid (only if both are provided)
                 if ($this->filled('reserve_price') && $this->filled('starting_bid')) {
                     if ($this->reserve_price < $this->starting_bid) {
                         $validator->errors()->add('reserve_price', 'Reserve price should be at least the starting bid amount.');
-                    }
-                }
-                
-                if ($this->filled('reserve_price') && $this->filled('asking_price')) {
-                    if ($this->reserve_price >= $this->asking_price) {
-                        $validator->errors()->add('reserve_price', 'Reserve price should be lower than the asking price.');
                     }
                 }
             }

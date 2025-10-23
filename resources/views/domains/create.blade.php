@@ -11,6 +11,18 @@
                                 <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white">List Domain for Sale</h1>
             <p class="mt-2 text-gray-600 dark:text-gray-400">Sell your domain and reach thousands of potential buyers.</p>
+            
+            <!-- Pricing Guidelines -->
+            <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 class="text-sm font-medium text-blue-800">Pricing Guidelines:</h3>
+                <ul class="text-xs text-blue-700 mt-1 list-disc list-inside">
+                    <li><strong>Asking Price:</strong> Your desired selling price</li>
+                    <li><strong>Buy Now:</strong> Optional - immediate purchase price (can be same as asking price)</li>
+                    <li><strong>Offers:</strong> Set minimum/maximum offer ranges</li>
+                    <li><strong>Bidding:</strong> Set starting bid and optional reserve price</li>
+                    <li>All prices must be at least $0.01</li>
+                </ul>
+            </div>
                                 </div>
         <a href="{{ route('dashboard') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -24,7 +36,36 @@
                         <!-- Domain Listing Form -->
 <div class="bg-white dark:bg-gray-800 shadow-xl rounded-2xl">
     <div class="px-6 py-8">
-                                <form method="post" action="{{ route('domains.store') }}" class="space-y-8">
+                                <!-- General Error Messages -->
+                                @if ($errors->any())
+                                    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <div class="flex items-center mb-2">
+                                            <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <h3 class="text-sm font-medium text-red-800">Please fix the following errors:</h3>
+                                        </div>
+                                        <ul class="text-sm text-red-700 list-disc list-inside">
+                                            @foreach ($errors->all() as $error)
+                                                <li>{{ $error }}</li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+
+                                <!-- Success Messages -->
+                                @if (session('success'))
+                                    <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                        <div class="flex items-center">
+                                            <svg class="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            <span class="text-green-800 font-medium">{{ session('success') }}</span>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <form method="post" action="{{ route('domains.store') }}" class="space-y-8" id="domain-form">
                                     @csrf
 
                                     <!-- Domain Information -->
@@ -39,7 +80,7 @@
                 </h3>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                        <label for="domain_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Domain Name</label>
+                        <label for="domain_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Domain Name <span class="text-red-500">*</span></label>
                                                 <div class="mt-1 relative rounded-md shadow-sm">
                             <input type="text" name="domain_name" id="domain_name" class="block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg @error('domain_name') border-red-500 @enderror" placeholder="example" value="{{ old('domain_name') }}" required>
                                                 </div>
@@ -49,7 +90,7 @@
                                             </div>
 
                                             <div>
-                        <label for="domain_extension" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Extension</label>
+                        <label for="domain_extension" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Extension <span class="text-red-500">*</span></label>
                         <select name="domain_extension" id="domain_extension" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg @error('domain_extension') border-red-500 @enderror">
                                                     <option value="">Select Extension</option>
                                                     <option value=".com" {{ old('domain_extension') == '.com' ? 'selected' : '' }}>.com</option>
@@ -92,7 +133,7 @@
                 </h3>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                        <label for="asking_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Asking Price ($)</label>
+                        <label for="asking_price" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Asking Price ($) <span class="text-red-500">*</span></label>
                                                 <div class="mt-1 relative rounded-md shadow-sm">
                                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
@@ -158,7 +199,7 @@
                                                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                                                 <span class="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
                                                             </div>
-                                                            <input type="number" name="buy_now_price" id="buy_now_price" class="block w-full pl-7 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg" placeholder="1500" min="1" step="0.01" value="{{ old('buy_now_price') }}">
+                                                            <input type="number" name="buy_now_price" id="buy_now_price" class="block w-full pl-7 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg" placeholder="Can be same as asking price" min="0.01" step="0.01" value="{{ old('buy_now_price') }}">
                                                         </div>
                                                     </div>
                                                     <div>
@@ -447,8 +488,8 @@
                                     <!-- Form Actions -->
             <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
                                         <div class="flex items-center gap-4">
-                    @if(auth()->user()->isFullyVerified())
-                    <button type="submit" name="action" value="publish" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-widest shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    @if(true) {{-- Temporarily allow all users --}}
+                    <button type="submit" name="action" value="publish" id="publish-btn" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-widest shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                                                 </svg>
@@ -462,7 +503,7 @@
                                                 {{ __('Verification Required') }}
                                             </button>
                     @endif
-                    <button type="submit" name="action" value="draft" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-widest shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                    <button type="submit" name="action" value="draft" id="draft-btn" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 border border-transparent rounded-lg font-semibold text-sm text-white uppercase tracking-widest shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                                                 </svg>
@@ -849,6 +890,260 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4000);
     }
     
+    // Button click debugging
+    const publishBtn = document.getElementById('publish-btn');
+    const draftBtn = document.getElementById('draft-btn');
+    
+    if (publishBtn) {
+        publishBtn.addEventListener('click', function(e) {
+            console.log('Publish button clicked');
+            console.log('Button value:', this.value);
+        });
+    }
+    
+    if (draftBtn) {
+        draftBtn.addEventListener('click', function(e) {
+            console.log('Draft button clicked');
+            console.log('Button value:', this.value);
+        });
+    }
+
+    // Form validation and submission
+    const form = document.getElementById('domain-form');
+    if (form) {
+        // Clear any existing error messages
+        function clearErrorMessages() {
+            const errorElements = document.querySelectorAll('.field-error');
+            errorElements.forEach(element => element.remove());
+        }
+        
+        // Show error message for a field
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            
+            // Remove existing error for this field
+            const existingError = field.parentNode.querySelector('.field-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'field-error mt-1 text-sm text-red-600 dark:text-red-400';
+            errorDiv.textContent = message;
+            field.parentNode.appendChild(errorDiv);
+            
+            // Add error styling to field
+            field.classList.add('border-red-500');
+            field.classList.remove('border-gray-300', 'dark:border-gray-600');
+        }
+        
+        // Show general error message
+        function showGeneralError(message) {
+            // Remove existing general error
+            const existingError = document.getElementById('general-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            // Add general error message
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'general-error';
+            errorDiv.className = 'mb-4 p-4 bg-red-50 border border-red-200 rounded-lg';
+            errorDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-red-800 font-medium">${message}</span>
+                </div>
+            `;
+            
+            // Insert before the form
+            form.parentNode.insertBefore(errorDiv, form);
+        }
+        
+        // Validate form fields
+        function validateForm() {
+            clearErrorMessages();
+            let isValid = true;
+            let errorMessages = [];
+            
+            // Required field validation
+            const domainName = document.getElementById('domain_name').value.trim();
+            const domainExtension = document.getElementById('domain_extension').value;
+            const askingPrice = document.getElementById('asking_price').value;
+            
+            if (!domainName) {
+                showFieldError('domain_name', 'Domain name is required.');
+                isValid = false;
+            } else if (!/^[a-zA-Z0-9-]+$/.test(domainName)) {
+                showFieldError('domain_name', 'Domain name can only contain letters, numbers, and hyphens.');
+                isValid = false;
+            }
+            
+            if (!domainExtension) {
+                showFieldError('domain_extension', 'Domain extension is required.');
+                isValid = false;
+            }
+            
+            if (!askingPrice) {
+                showFieldError('asking_price', 'Asking price is required.');
+                isValid = false;
+            } else if (parseFloat(askingPrice) < 0.01) {
+                showFieldError('asking_price', 'Asking price must be at least $0.01.');
+                isValid = false;
+            } else if (parseFloat(askingPrice) > 9999999.99) {
+                showFieldError('asking_price', 'Asking price cannot exceed $9,999,999.99.');
+                isValid = false;
+            }
+            
+            // Check if user is verified (only for publish action)
+            const submitButton = document.querySelector('button[type="submit"]:focus');
+            if (submitButton && submitButton.value === 'publish') {
+                const isVerified = {{ auth()->user()->isFullyVerified() ? 'true' : 'false' }};
+                if (!isVerified) {
+                    showGeneralError('You must complete your account verification before listing domains for sale. Please complete PayPal and Government ID verification first.');
+                    isValid = false;
+                }
+            }
+            
+            // Validate pricing options if enabled
+            const enableBuyNow = document.getElementById('enable_buy_now')?.checked;
+            const enableOffers = document.getElementById('enable_offers')?.checked;
+            const enableBidding = document.getElementById('enable_bidding')?.checked;
+            
+            if (enableBuyNow) {
+                const buyNowPrice = document.getElementById('buy_now_price')?.value;
+                if (buyNowPrice && parseFloat(buyNowPrice) < 0.01) {
+                    showFieldError('buy_now_price', 'Buy Now price must be at least $0.01.');
+                    isValid = false;
+                }
+            }
+            
+            if (enableOffers) {
+                const minOffer = document.getElementById('minimum_offer')?.value;
+                const maxOffer = document.getElementById('maximum_offer')?.value;
+                const autoAccept = document.getElementById('auto_accept_threshold')?.value;
+                
+                if (minOffer && parseFloat(minOffer) < 0.01) {
+                    showFieldError('minimum_offer', 'Minimum offer must be at least $0.01.');
+                    isValid = false;
+                }
+                
+                if (maxOffer && parseFloat(maxOffer) < 0.01) {
+                    showFieldError('maximum_offer', 'Maximum offer must be at least $0.01.');
+                    isValid = false;
+                }
+                
+                if (minOffer && maxOffer && parseFloat(maxOffer) <= parseFloat(minOffer)) {
+                    showFieldError('maximum_offer', 'Maximum offer should be higher than minimum offer.');
+                    isValid = false;
+                }
+                
+                if (document.getElementById('auto_accept_offers')?.checked) {
+                    if (autoAccept && parseFloat(autoAccept) < 0.01) {
+                        showFieldError('auto_accept_threshold', 'Auto-accept threshold must be at least $0.01.');
+                        isValid = false;
+                    }
+                    
+                    if (minOffer && autoAccept && parseFloat(autoAccept) <= parseFloat(minOffer)) {
+                        showFieldError('auto_accept_threshold', 'Auto-accept threshold should be higher than minimum offer.');
+                        isValid = false;
+                    }
+                }
+            }
+            
+            if (enableBidding) {
+                const startingBid = document.getElementById('starting_bid')?.value;
+                const reservePrice = document.getElementById('reserve_price')?.value;
+                
+                if (startingBid && parseFloat(startingBid) < 0.01) {
+                    showFieldError('starting_bid', 'Starting bid must be at least $0.01.');
+                    isValid = false;
+                }
+                
+                if (reservePrice && parseFloat(reservePrice) < 0.01) {
+                    showFieldError('reserve_price', 'Reserve price must be at least $0.01.');
+                    isValid = false;
+                }
+                
+                if (startingBid && reservePrice && parseFloat(reservePrice) < parseFloat(startingBid)) {
+                    showFieldError('reserve_price', 'Reserve price should be at least the starting bid amount.');
+                    isValid = false;
+                }
+            }
+            
+            return isValid;
+        }
+        
+        form.addEventListener('submit', function(e) {
+            console.log('Form submission started');
+            
+            if (!validateForm()) {
+                e.preventDefault();
+                console.log('Form validation failed');
+                return false;
+            }
+            
+            console.log('Form validation passed, submitting...');
+            
+            // Show loading state
+            const submitButtons = document.querySelectorAll('button[type="submit"]');
+            submitButtons.forEach(button => {
+                button.disabled = true;
+                button.innerHTML = `
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                `;
+            });
+        });
+        
+        // Real-time validation as user types
+        const domainNameField = document.getElementById('domain_name');
+        const domainExtensionField = document.getElementById('domain_extension');
+        const askingPriceField = document.getElementById('asking_price');
+        
+        if (domainNameField) {
+            domainNameField.addEventListener('blur', function() {
+                const value = this.value.trim();
+                if (value && !/^[a-zA-Z0-9-]+$/.test(value)) {
+                    showFieldError('domain_name', 'Domain name can only contain letters, numbers, and hyphens.');
+                } else {
+                    clearFieldError('domain_name');
+                }
+            });
+        }
+        
+        if (askingPriceField) {
+            askingPriceField.addEventListener('blur', function() {
+                const value = parseFloat(this.value);
+                if (this.value && (isNaN(value) || value < 0.01)) {
+                    showFieldError('asking_price', 'Asking price must be at least $0.01.');
+                } else if (this.value && value > 9999999.99) {
+                    showFieldError('asking_price', 'Asking price cannot exceed $9,999,999.99.');
+                } else {
+                    clearFieldError('asking_price');
+                }
+            });
+        }
+        
+        // Clear field error helper
+        function clearFieldError(fieldId) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            
+            const existingError = field.parentNode.querySelector('.field-error');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            field.classList.remove('border-red-500');
+            field.classList.add('border-gray-300', 'dark:border-gray-600');
+        }
+    }
+
     // Sale options toggle functionality
     if (enableBuyNowCheckbox) {
         enableBuyNowCheckbox.addEventListener('change', function() {

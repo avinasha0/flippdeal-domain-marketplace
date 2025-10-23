@@ -63,6 +63,23 @@ Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'inde
 // Domain routes
 Route::middleware('auth')->group(function () {
     Route::get('/domains/create', [App\Http\Controllers\DomainController::class, 'create'])->name('domains.create');
+    
+    // Debug route to check user verification status
+    Route::get('/debug-user-status', function() {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated']);
+        }
+        
+        return response()->json([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'paypal_verified' => $user->paypal_verified,
+            'government_id_verified' => $user->government_id_verified,
+            'is_fully_verified' => $user->isFullyVerified(),
+            'account_status' => $user->account_status
+        ]);
+    });
     Route::post('/domains', [App\Http\Controllers\DomainController::class, 'store'])->name('domains.store');
     Route::get('/domains/{domain}', [App\Http\Controllers\DomainController::class, 'show'])->name('domains.show');
     Route::get('/domains/{domain}/edit', [App\Http\Controllers\DomainController::class, 'edit'])->name('domains.edit');

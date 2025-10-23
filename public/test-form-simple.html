@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Form Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; background: #3b82f6; color: white; }
+        .error { color: red; font-size: 12px; margin-top: 5px; }
+        .success { color: green; font-size: 12px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Simple Domain Form Test</h1>
+    <p>This tests the basic form submission to your Laravel application.</p>
+    
+    <form method="post" action="http://localhost:8000/domains" id="test-form">
+        <input type="hidden" name="_token" value="test-token">
+        
+        <div class="form-group">
+            <label for="domain_name">Domain Name *</label>
+            <input type="text" name="domain_name" id="domain_name" value="testdomain" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="domain_extension">Extension *</label>
+            <select name="domain_extension" id="domain_extension" required>
+                <option value="">Select Extension</option>
+                <option value=".com" selected>.com</option>
+                <option value=".net">.net</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="asking_price">Asking Price *</label>
+            <input type="number" name="asking_price" id="asking_price" value="1000" step="0.01" min="0.01" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea name="description" id="description" rows="3">Test domain for sale</textarea>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" name="action" value="publish">Test List Domain for Sale</button>
+            <button type="submit" name="action" value="draft">Test Save as Draft</button>
+        </div>
+    </form>
+    
+    <div id="status" style="margin-top: 20px; padding: 10px; background: #f3f4f6; border-radius: 4px;">
+        <h3>Status:</h3>
+        <div id="status-output">Ready to test...</div>
+    </div>
+
+    <script>
+        const form = document.getElementById('test-form');
+        const statusOutput = document.getElementById('status-output');
+        
+        function updateStatus(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            statusOutput.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+        }
+        
+        form.addEventListener('submit', function(e) {
+            updateStatus('Form submission started...', 'info');
+            
+            // Check required fields
+            const domainName = document.getElementById('domain_name').value;
+            const domainExtension = document.getElementById('domain_extension').value;
+            const askingPrice = document.getElementById('asking_price').value;
+            
+            if (!domainName || !domainExtension || !askingPrice) {
+                e.preventDefault();
+                updateStatus('ERROR: Missing required fields', 'error');
+                return false;
+            }
+            
+            updateStatus('Form validation passed, submitting...', 'success');
+            updateStatus('Note: This will likely fail due to CSRF token, but we can see if the route is working', 'info');
+        });
+        
+        updateStatus('Page loaded and ready for testing');
+    </script>
+</body>
+</html>

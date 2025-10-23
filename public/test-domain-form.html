@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Form Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .publish-btn { background: #3b82f6; color: white; }
+        .draft-btn { background: #6b7280; color: white; }
+        .disabled { background: #d1d5db; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>Domain Form Test</h1>
+    <p>This is a test page to debug the domain form submission issue.</p>
+    
+    <form method="post" action="http://localhost:8000/domains" id="domain-form">
+        <input type="hidden" name="_token" value="test-token">
+        
+        <div class="form-group">
+            <label for="domain_name">Domain Name *</label>
+            <input type="text" name="domain_name" id="domain_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="domain_extension">Extension *</label>
+            <select name="domain_extension" id="domain_extension" required>
+                <option value="">Select Extension</option>
+                <option value=".com">.com</option>
+                <option value=".net">.net</option>
+                <option value=".org">.org</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="asking_price">Asking Price *</label>
+            <input type="number" name="asking_price" id="asking_price" step="0.01" min="0.01" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea name="description" id="description" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" name="action" value="publish" id="publish-btn" class="publish-btn">List Domain for Sale</button>
+            <button type="submit" name="action" value="draft" id="draft-btn" class="draft-btn">Save as Draft</button>
+        </div>
+    </form>
+    
+    <div id="debug-info" style="margin-top: 20px; padding: 10px; background: #f3f4f6; border-radius: 4px;">
+        <h3>Debug Information:</h3>
+        <div id="debug-output"></div>
+    </div>
+
+    <script>
+        // Button click debugging
+        const publishBtn = document.getElementById('publish-btn');
+        const draftBtn = document.getElementById('draft-btn');
+        const form = document.getElementById('domain-form');
+        const debugOutput = document.getElementById('debug-output');
+        
+        function addDebugInfo(message) {
+            debugOutput.innerHTML += '<p>' + new Date().toLocaleTimeString() + ': ' + message + '</p>';
+        }
+        
+        if (publishBtn) {
+            publishBtn.addEventListener('click', function(e) {
+                addDebugInfo('Publish button clicked - Value: ' + this.value);
+            });
+        }
+        
+        if (draftBtn) {
+            draftBtn.addEventListener('click', function(e) {
+                addDebugInfo('Draft button clicked - Value: ' + this.value);
+            });
+        }
+
+        // Form submission debugging
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                addDebugInfo('Form submission started');
+                addDebugInfo('Form action: ' + form.action);
+                addDebugInfo('Form method: ' + form.method);
+                
+                // Check if required fields are filled
+                const domainName = document.getElementById('domain_name').value;
+                const domainExtension = document.getElementById('domain_extension').value;
+                const askingPrice = document.getElementById('asking_price').value;
+                
+                addDebugInfo('Domain name: ' + domainName);
+                addDebugInfo('Domain extension: ' + domainExtension);
+                addDebugInfo('Asking price: ' + askingPrice);
+                
+                if (!domainName || !domainExtension || !askingPrice) {
+                    e.preventDefault();
+                    addDebugInfo('Form validation failed - missing required fields');
+                    alert('Please fill in all required fields (Domain Name, Extension, and Asking Price)');
+                    return false;
+                }
+                
+                addDebugInfo('Form validation passed, submitting...');
+            });
+        }
+        
+        addDebugInfo('Page loaded and event listeners attached');
+    </script>
+</body>
+</html>
