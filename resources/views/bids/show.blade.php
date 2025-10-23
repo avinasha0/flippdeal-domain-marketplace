@@ -156,20 +156,13 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
             <div class="flex flex-wrap gap-4">
                 @if($bid->status === 'active')
-                    <a href="{{ route('bids.edit', $bid) }}" 
-                       class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 shadow-lg">
-                        Edit Bid
-                    </a>
-                    
-                    <form method="POST" action="{{ route('bids.destroy', $bid) }}" class="inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" 
-                                class="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition duration-200 shadow-lg"
-                                onclick="return confirm('Are you sure you want to cancel this bid?')">
-                            Cancel Bid
-                        </button>
-                    </form>
+                    <span class="bg-blue-100 text-blue-800 px-6 py-3 rounded-lg font-semibold">
+                        Active Bid
+                    </span>
+                @else
+                    <span class="bg-gray-100 text-gray-800 px-6 py-3 rounded-lg font-semibold">
+                        {{ ucfirst($bid->status) }} Bid
+                    </span>
                 @endif
                 
                 <a href="{{ route('domains.bids.index', $bid->domain) }}" 
