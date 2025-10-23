@@ -30,7 +30,8 @@ class UserApiController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role_id' => 3, // Regular user role
-            'account_status' => 'pending_verification'
+            'account_status' => 'pending_verification',
+            'email_verified_at' => now() // Set email as verified for API registration
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
