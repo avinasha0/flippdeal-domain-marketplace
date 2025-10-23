@@ -785,6 +785,18 @@
 
                         <!-- Auction/Bidding Option -->
                         @if($domain->hasBidding())
+                            <!-- Debug Information (remove in production) -->
+                            @if(auth()->id() === $domain->user_id)
+                                <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4 text-xs">
+                                    <strong>Debug Info:</strong><br>
+                                    enable_bidding: {{ $domain->enable_bidding ? 'true' : 'false' }}<br>
+                                    starting_bid: {{ $domain->starting_bid ?? 'null' }}<br>
+                                    auction_start: {{ $domain->auction_start ?? 'null' }}<br>
+                                    auction_end: {{ $domain->auction_end ?? 'null' }}<br>
+                                    isReadyForBidding: {{ $domain->isReadyForBidding() ? 'true' : 'false' }}
+                                </div>
+                            @endif
+                            
                             @if($domain->isReadyForBidding())
                                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 border-2 border-orange-200 dark:border-orange-800 hover:shadow-2xl transition-all duration-300">
                                     <div class="text-center mb-4">

@@ -261,7 +261,7 @@
                     <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center">
-                                <input type="checkbox" name="enable_bidding" id="enable_bidding" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" {{ old('enable_bidding', $domain->enable_bidding) ? 'checked' : '' }} onchange="toggleBiddingFields()">
+                                <input type="checkbox" name="enable_bidding" id="enable_bidding" value="1" class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded" {{ old('enable_bidding', $domain->enable_bidding) ? 'checked' : '' }} onchange="toggleBiddingFields()">
                                 <label for="enable_bidding" class="ml-2 block text-sm font-medium text-gray-900 dark:text-white">
                                     Enable Auction/Bidding
                                 </label>

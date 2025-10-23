@@ -513,6 +513,13 @@ class DomainController extends Controller
         
         $data = $request->validated();
         
+        // Debug logging (remove in production)
+        \Log::info('Domain Update Request Data', [
+            'domain_id' => $domain->id,
+            'request_data' => $request->all(),
+            'validated_data' => $data
+        ]);
+        
         // Handle BIN (Buy It Now) logic
         if (!isset($data['enable_bin']) || !$data['enable_bin']) {
             $data['bin_price'] = null;
@@ -533,7 +540,7 @@ class DomainController extends Controller
         }
 
         // Handle bidding logic
-        if (!isset($data['enable_bidding']) || !$data['enable_bidding']) {
+        if (!isset($data['enable_bidding']) || $data['enable_bidding'] != '1') {
             $data['enable_bidding'] = false;
             $data['starting_bid'] = null;
             $data['current_bid'] = null;
@@ -575,6 +582,17 @@ class DomainController extends Controller
         }
         
         $domain->update($data);
+
+        // Debug logging (remove in production)
+        \Log::info('Domain Update Debug', [
+            'domain_id' => $domain->id,
+            'enable_bidding' => $domain->enable_bidding,
+            'starting_bid' => $domain->starting_bid,
+            'auction_start' => $domain->auction_start,
+            'auction_end' => $domain->auction_end,
+            'isReadyForBidding' => $domain->isReadyForBidding(),
+            'updated_data' => $data
+        ]);
 
         return redirect()->route('domains.show', $domain)
             ->with('success', 'Domain updated successfully!');
