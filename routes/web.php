@@ -462,8 +462,14 @@ Route::get('/offers', function () {
 
 Route::get('/offers/create', function () { return view('offers.create'); })->name('offers.create');
 Route::post('/offers', function () { return redirect()->back()->with('success', 'Offer submitted!'); })->name('offers.store');
-Route::get('/domains/{domain}/bids', function ($domain) { return view('bids.index', compact('domain')); })->name('domains.bids.index');
-Route::get('/domains/{domain}/bids/create', function ($domain) { return view('bids.create', compact('domain')); })->name('domains.bids.create');
+Route::get('/domains/{domain}/bids', function ($domainSlug) { 
+    $domain = \App\Models\Domain::where('slug', $domainSlug)->firstOrFail();
+    return view('bids.index', compact('domain')); 
+})->name('domains.bids.index');
+Route::get('/domains/{domain}/bids/create', function ($domainSlug) { 
+    $domain = \App\Models\Domain::where('slug', $domainSlug)->firstOrFail();
+    return view('bids.create', compact('domain')); 
+})->name('domains.bids.create');
 
 // Other routes - FIXED with proper pagination
 Route::get('/orders', function () { 
