@@ -47,7 +47,7 @@ class StoreDomainRequest extends FormRequest
             'enable_bidding' => 'boolean',
             'starting_bid' => 'nullable|required_if:enable_bidding,1|numeric|min:0.01|max:9999999.99',
             'reserve_price' => 'nullable|numeric|min:0.01|max:9999999.99',
-            'auction_start' => 'nullable|required_if:enable_bidding,1|date|after:now',
+            'auction_start' => 'nullable|required_if:enable_bidding,1|date|after_or_equal:now',
             'auction_end' => 'nullable|required_if:enable_bidding,1|date|after:auction_start',
             'minimum_bid_increment' => 'nullable|integer|min:1|max:1000',
             'auto_extend' => 'boolean',

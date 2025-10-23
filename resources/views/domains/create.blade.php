@@ -242,11 +242,13 @@
                                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
                                                             <label for="auction_start" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Auction Start</label>
-                                                            <input type="datetime-local" name="auction_start" id="auction_start" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg" value="{{ old('auction_start') }}">
+                                                            <input type="datetime-local" name="auction_start" id="auction_start" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg" value="{{ old('auction_start', now()->format('Y-m-d\TH:i')) }}">
+                                                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Defaults to current date/time</p>
                                                         </div>
                                                         <div>
                                                             <label for="auction_end" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Auction End</label>
-                                                            <input type="datetime-local" name="auction_end" id="auction_end" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg" value="{{ old('auction_end') }}">
+                                                            <input type="datetime-local" name="auction_end" id="auction_end" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 rounded-lg" value="{{ old('auction_end', now()->addDays(90)->format('Y-m-d\TH:i')) }}">
+                                                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Defaults to 90 days from now</p>
                                                         </div>
                                                     </div>
                                                     <div>
@@ -1204,6 +1206,34 @@ document.addEventListener('DOMContentLoaded', function() {
             autoAcceptFields.style.display = 'block';
         }
     }
+
+    // Auto-update auction end date when start date changes
+    function updateAuctionEndDate() {
+        const startDateInput = document.getElementById('auction_start');
+        const endDateInput = document.getElementById('auction_end');
+        
+        if (startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', function() {
+                if (this.value) {
+                    const startDate = new Date(this.value);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 90); // Add 90 days
+                    
+                    // Format for datetime-local input
+                    const year = endDate.getFullYear();
+                    const month = String(endDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(endDate.getDate()).padStart(2, '0');
+                    const hours = String(endDate.getHours()).padStart(2, '0');
+                    const minutes = String(endDate.getMinutes()).padStart(2, '0');
+                    
+                    endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                }
+            });
+        }
+    }
+
+    // Initialize auction date functionality
+    updateAuctionEndDate();
 });
 </script>
 @endsection

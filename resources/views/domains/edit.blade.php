@@ -327,8 +327,8 @@
 
                             <div>
                                 <label for="auction_start" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Auction Start</label>
-                                <input type="datetime-local" name="auction_start" id="auction_start" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-purple-500 focus:border-purple-500 rounded-md @error('auction_start') border-red-500 @enderror" value="{{ old('auction_start', $domain->auction_start ? $domain->auction_start->format('Y-m-d\TH:i') : '') }}">
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">When the auction should start.</p>
+                                <input type="datetime-local" name="auction_start" id="auction_start" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-purple-500 focus:border-purple-500 rounded-md @error('auction_start') border-red-500 @enderror" value="{{ old('auction_start', $domain->auction_start ? $domain->auction_start->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i')) }}">
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">When the auction should start. Defaults to current date/time.</p>
                                 @error('auction_start')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -336,8 +336,8 @@
 
                             <div>
                                 <label for="auction_end" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Auction End</label>
-                                <input type="datetime-local" name="auction_end" id="auction_end" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-purple-500 focus:border-purple-500 rounded-md @error('auction_end') border-red-500 @enderror" value="{{ old('auction_end', $domain->auction_end ? $domain->auction_end->format('Y-m-d\TH:i') : '') }}">
-                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">When the auction should end.</p>
+                                <input type="datetime-local" name="auction_end" id="auction_end" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-purple-500 focus:border-purple-500 rounded-md @error('auction_end') border-red-500 @enderror" value="{{ old('auction_end', $domain->auction_end ? $domain->auction_end->format('Y-m-d\TH:i') : now()->addDays(90)->format('Y-m-d\TH:i')) }}">
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">When the auction should end. Defaults to 90 days from start date.</p>
                                 @error('auction_end')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -540,11 +540,37 @@
         }
     }
 
+    // Auto-update auction end date when start date changes
+    function updateAuctionEndDate() {
+        const startDateInput = document.getElementById('auction_start');
+        const endDateInput = document.getElementById('auction_end');
+        
+        if (startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', function() {
+                if (this.value) {
+                    const startDate = new Date(this.value);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 90); // Add 90 days
+                    
+                    // Format for datetime-local input
+                    const year = endDate.getFullYear();
+                    const month = String(endDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(endDate.getDate()).padStart(2, '0');
+                    const hours = String(endDate.getHours()).padStart(2, '0');
+                    const minutes = String(endDate.getMinutes()).padStart(2, '0');
+                    
+                    endDateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                }
+            });
+        }
+    }
+
     // Initialize fields on page load
     document.addEventListener('DOMContentLoaded', function() {
         toggleBinFields();
         toggleOfferFields();
         toggleBiddingFields();
+        updateAuctionEndDate();
     });
 </script>
 @endsection
