@@ -262,17 +262,21 @@ Route::middleware('auth')->group(function () {
 
 // Communication routes - FIXED with proper pagination
 Route::get('/conversations', function () { 
-    $conversations = new \Illuminate\Pagination\LengthAwarePaginator(
-        collect([]),
-        0,
-        15,
-        1,
-        ['path' => request()->url()]
-    );
+    $user = auth()->user();
+    
+    // Get conversations where user is either buyer or seller
+    $conversations = \App\Models\Conversation::with(['buyer', 'seller', 'latestMessage'])
+        ->where('buyer_id', $user->id)
+        ->orWhere('seller_id', $user->id)
+        ->orderBy('last_message_at', 'desc')
+        ->paginate(15);
+    
+    // Calculate unread count
+    $unreadCount = $user->getUnreadConversationCountAttribute();
     
     return view('conversations.index', [
         'conversations' => $conversations,
-        'unreadCount' => 0
+        'unreadCount' => $unreadCount
     ]); 
 })->name('conversations.index');
 
@@ -289,11 +293,67 @@ Route::get('/conversations/create', function () {
 })->name('conversations.new');
 
 Route::post('/conversations', function () { 
-    return redirect()->route('conversations.index')->with('success', 'Message sent successfully!'); 
+    $request = request();
+    
+    // Validate the request
+    $request->validate([
+        'recipient_id' => 'required|exists:users,id',
+        'subject' => 'required|string|max:255',
+        'message' => 'required|string|max:5000',
+    ]);
+    
+    $sender = auth()->user();
+    $recipient = \App\Models\User::findOrFail($request->recipient_id);
+    
+    // Check if conversation already exists between these users
+    $existingConversation = \App\Models\Conversation::where(function($query) use ($sender, $recipient) {
+        $query->where('buyer_id', $sender->id)->where('seller_id', $recipient->id);
+    })->orWhere(function($query) use ($sender, $recipient) {
+        $query->where('buyer_id', $recipient->id)->where('seller_id', $sender->id);
+    })->first();
+    
+    if ($existingConversation) {
+        // Add message to existing conversation
+        $conversation = $existingConversation;
+    } else {
+        // Create new conversation
+        $conversation = \App\Models\Conversation::create([
+            'buyer_id' => $sender->id,
+            'seller_id' => $recipient->id,
+            'subject' => $request->subject,
+            'last_message_at' => now(),
+            'buyer_unread_count' => 0,
+            'seller_unread_count' => 1, // Recipient has 1 unread message
+        ]);
+    }
+    
+    // Create the message
+    \App\Models\Message::create([
+        'conversation_id' => $conversation->id,
+        'sender_id' => $sender->id,
+        'receiver_id' => $recipient->id,
+        'from_user_id' => $sender->id,
+        'to_user_id' => $recipient->id,
+        'subject' => $request->subject,
+        'body' => $request->message,
+        'message' => $request->message, // Legacy field
+        'is_read' => false,
+    ]);
+    
+    // Update conversation's last message time
+    $conversation->update(['last_message_at' => now()]);
+    
+    return redirect()->route('conversations.show', $conversation->id)->with('success', 'Message sent successfully!'); 
 })->name('conversations.store');
 
 // This route MUST come after the /new route
 Route::get('/conversations/{conversation}', function ($conversation) { 
+    $conversation = \App\Models\Conversation::with(['buyer', 'seller', 'messages.sender'])
+        ->findOrFail($conversation);
+    
+    // Mark messages as read for the current user
+    $conversation->markAsReadForUser(auth()->id());
+    
     return view('conversations.show', compact('conversation')); 
 })->name('conversations.show');
 
