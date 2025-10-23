@@ -481,6 +481,66 @@ Route::get('/domains/{domain}/bids/create', function ($domainSlug) {
     return view('bids.create', compact('domain', 'userHighestBid')); 
 })->name('domains.bids.create');
 
+Route::post('/domains/{domain}/bids', function ($domainSlug, \Illuminate\Http\Request $request) {
+    $domain = \App\Models\Domain::where('slug', $domainSlug)->firstOrFail();
+    
+    // Validate the bid
+    $request->validate([
+        'bid_amount' => 'required|numeric|min:0.01|max:9999999.99',
+    ]);
+    
+    // Check if user is authenticated
+    if (!auth()->check()) {
+        return redirect()->back()->with('error', 'You must be logged in to place a bid.');
+    }
+    
+    // Check if bidding is enabled for this domain
+    if (!$domain->enable_bidding) {
+        return redirect()->back()->with('error', 'Bidding is not enabled for this domain.');
+    }
+    
+    // Check if auction is active
+    if (!$domain->isReadyForBidding()) {
+        return redirect()->back()->with('error', 'Auction is not ready for bidding.');
+    }
+    
+    $bidAmount = $request->input('bid_amount');
+    
+    // Check if bid is higher than starting bid
+    if ($bidAmount < $domain->starting_bid) {
+        return redirect()->back()->with('error', 'Bid must be at least the starting bid of $' . number_format($domain->starting_bid, 2));
+    }
+    
+    // Check if bid is higher than current highest bid
+    $currentHighestBid = $domain->bids()->where('is_winning', true)->first();
+    if ($currentHighestBid && $bidAmount <= $currentHighestBid->amount) {
+        return redirect()->back()->with('error', 'Bid must be higher than the current highest bid of $' . number_format($currentHighestBid->amount, 2));
+    }
+    
+    // Mark previous winning bid as outbid
+    if ($currentHighestBid) {
+        $currentHighestBid->update(['is_winning' => false, 'is_outbid' => true]);
+    }
+    
+    // Create new bid
+    $bid = $domain->bids()->create([
+        'user_id' => auth()->id(),
+        'amount' => $bidAmount,
+        'is_winning' => true,
+        'is_outbid' => false,
+        'bid_at' => now(),
+    ]);
+    
+    // Update domain's current bid
+    $domain->update([
+        'current_bid' => $bidAmount,
+        'bid_count' => $domain->bids()->count(),
+    ]);
+    
+    return redirect()->route('domains.bids.index', $domain)
+        ->with('success', 'Bid placed successfully!');
+})->name('domains.bids.store');
+
 // Other routes - FIXED with proper pagination
 Route::get('/orders', function () { 
     $orders = new \Illuminate\Pagination\LengthAwarePaginator(
