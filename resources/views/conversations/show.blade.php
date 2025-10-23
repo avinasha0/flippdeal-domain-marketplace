@@ -48,6 +48,13 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
+                    <a href="{{ route('users.profile.show', $otherUser) }}" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        View Profile
+                    </a>
                     <a href="{{ route('domains.show', $conversation->domain) }}" 
                        class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200">
                         View Domain
@@ -64,9 +71,19 @@
                     <div class="flex {{ $message->sender_id === auth()->id() ? 'justify-end' : 'justify-start' }}">
                         <div class="max-w-xs lg:max-w-md">
                             <div class="flex items-end space-x-2 {{ $message->sender_id === auth()->id() ? 'flex-row-reverse space-x-reverse' : '' }}">
-                                <img class="h-8 w-8 rounded-full object-cover flex-shrink-0" 
-                                     src="{{ $message->sender->avatar_url }}" 
-                                     alt="{{ $message->sender->name }}">
+                                @if($message->sender_id !== auth()->id())
+                                    <a href="{{ route('users.profile.show', $message->sender) }}" 
+                                       class="h-8 w-8 rounded-full object-cover flex-shrink-0 hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 transition-all duration-200" 
+                                       title="View {{ $message->sender->name }}'s profile">
+                                        <img class="h-8 w-8 rounded-full object-cover" 
+                                             src="{{ $message->sender->avatar_url }}" 
+                                             alt="{{ $message->sender->name }}">
+                                    </a>
+                                @else
+                                    <img class="h-8 w-8 rounded-full object-cover flex-shrink-0" 
+                                         src="{{ $message->sender->avatar_url }}" 
+                                         alt="{{ $message->sender->name }}">
+                                @endif
                                 <div class="flex flex-col {{ $message->sender_id === auth()->id() ? 'items-end' : 'items-start' }}">
                                     <div class="px-4 py-2 rounded-2xl {{ $message->sender_id === auth()->id() 
                                         ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' 

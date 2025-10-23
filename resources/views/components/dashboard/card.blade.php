@@ -8,6 +8,7 @@ $colorClasses = [
     'red' => 'bg-gradient-to-r from-red-500 to-pink-600 text-white',
     'purple' => 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white',
     'indigo' => 'bg-gradient-to-r from-indigo-500 to-blue-600 text-white',
+    'pink' => 'bg-gradient-to-r from-pink-500 to-rose-600 text-white',
 ];
 @endphp
 

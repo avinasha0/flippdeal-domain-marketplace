@@ -480,19 +480,10 @@ Route::get('/orders', function () {
     ]); 
 })->name('orders.index');
 
-Route::get('/watchlist', function () { 
-    $watchlist = new \Illuminate\Pagination\LengthAwarePaginator(
-        collect([]),
-        0,
-        15,
-        1,
-        ['path' => request()->url()]
-    );
-    
-    return view('watchlist.index', [
-        'watchlist' => $watchlist
-    ]); 
-})->name('watchlist.index');
+Route::get('/watchlist', [App\Http\Controllers\WatchlistController::class, 'index'])->name('watchlist.index');
+Route::post('/watchlist', [App\Http\Controllers\WatchlistController::class, 'store'])->name('watchlist.store');
+Route::delete('/watchlist', [App\Http\Controllers\WatchlistController::class, 'destroy'])->name('watchlist.destroy');
+Route::post('/watchlist/toggle', [App\Http\Controllers\WatchlistController::class, 'toggle'])->name('watchlist.toggle');
 
 Route::get('/favorites', function () { return view('favorites.index'); })->name('favorites.index');
 

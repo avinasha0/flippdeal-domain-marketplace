@@ -108,9 +108,18 @@
                         </div>
                         
                         @auth
-                            <a href="{{ route('domains.show', $domain) }}" class="block w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-center font-medium">
-                                View Details
-                            </a>
+                            <div class="flex space-x-2">
+                                <a href="{{ route('domains.show', $domain) }}" class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-center font-medium">
+                                    View Details
+                                </a>
+                                <button onclick="toggleWatchlist({{ $domain->id }})" 
+                                        class="px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                                        id="watchlist-btn-{{ $domain->id }}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         @else
                             <a href="{{ route('login') }}" class="block w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 text-center font-medium">
                                 Login to View Details
@@ -159,4 +168,59 @@
         </div>
     @endif
 </div>
+
+<script>
+function toggleWatchlist(domainId) {
+    const button = document.getElementById(`watchlist-btn-${domainId}`);
+    const originalContent = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>';
+    button.disabled = true;
+    
+    fetch('/watchlist/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            domain_id: domainId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update button appearance based on watchlist status
+            if (data.is_watching) {
+                button.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                button.classList.add('bg-pink-100', 'dark:bg-pink-900/20', 'text-pink-600', 'dark:text-pink-400');
+                button.innerHTML = '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
+            } else {
+                button.classList.remove('bg-pink-100', 'dark:bg-pink-900/20', 'text-pink-600', 'dark:text-pink-400');
+                button.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>';
+            }
+            
+            // Show success message
+            if (data.message) {
+                // You can add a toast notification here
+                console.log(data.message);
+            }
+        } else {
+            // Restore original button state
+            button.innerHTML = originalContent;
+            alert(data.message || 'Failed to update watchlist.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        button.innerHTML = originalContent;
+        alert('Failed to update watchlist.');
+    })
+    .finally(() => {
+        button.disabled = false;
+    });
+}
+</script>
 @endsection

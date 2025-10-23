@@ -430,6 +430,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get watchlist count.
+     */
+    public function getWatchlistCountAttribute(): int
+    {
+        return $this->watchlist()->count();
+    }
+
+    /**
      * Get the KYC requests for the user.
      */
     public function kycRequests(): HasMany
@@ -451,14 +459,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isWatching(int $domainId): bool
     {
         return $this->watchlist()->where('domain_id', $domainId)->exists();
-    }
-
-    /**
-     * Get watchlist count.
-     */
-    public function getWatchlistCountAttribute(): int
-    {
-        return $this->watchlist()->count();
     }
 
     /**
