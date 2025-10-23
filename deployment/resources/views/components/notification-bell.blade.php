@@ -7,7 +7,7 @@
     <button @click="toggleNotifications()" 
             class="relative inline-flex items-center p-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150">
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.828 7l2.586 2.586a2 2 0 002.828 0L12.828 7H4.828z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
         </svg>
         
         <!-- Unread Count Badge -->
@@ -88,7 +88,7 @@ function notificationBell() {
         },
         
         loadNotifications() {
-            fetch('/api/v1/notifications/recent', {
+            fetch('/api/notifications/recent', {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
@@ -112,7 +112,7 @@ function notificationBell() {
         },
         
         markAsRead(notificationId) {
-            fetch(`/api/v1/notifications/${notificationId}/read`, {
+            fetch(`/api/notifications/${notificationId}/read`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
