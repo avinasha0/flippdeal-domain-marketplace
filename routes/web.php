@@ -276,6 +276,12 @@ Route::get('/conversations', function () {
     ]); 
 })->name('conversations.index');
 
+// Temporary redirect for old URL - remove after deployment
+Route::get('/conversations/new', function () { 
+    $userId = request('user_id');
+    return redirect('/conversations/create?user_id=' . $userId);
+});
+
 // This route MUST come before the {conversation} route
 Route::get('/conversations/create', function () { 
     $userId = request('user_id');
