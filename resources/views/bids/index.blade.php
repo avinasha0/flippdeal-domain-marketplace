@@ -172,27 +172,14 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        @if($bid->user_id === auth()->id() && $bid->status === 'active')
-                                            <div class="flex space-x-2">
-                                                <a href="{{ route('bids.edit', $bid) }}" 
-                                                   class="text-purple-600 hover:text-purple-900">
-                                                    Edit
-                                                </a>
-                                                <form method="POST" action="{{ route('bids.destroy', $bid) }}" class="inline">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" 
-                                                            class="text-red-600 hover:text-red-900"
-                                                            onclick="return confirm('Are you sure you want to cancel this bid?')">
-                                                        Cancel
-                                                    </button>
-                                                </form>
-                                            </div>
+                                        @if($bid->user_id === auth()->id())
+                                            <span class="text-blue-600 font-medium">
+                                                Your Bid
+                                            </span>
                                         @else
-                                            <a href="{{ route('bids.show', $bid) }}" 
-                                               class="text-blue-600 hover:text-blue-900">
-                                                View
-                                            </a>
+                                            <span class="text-gray-500">
+                                                Other Bidder
+                                            </span>
                                         @endif
                                     </td>
                                 </tr>
