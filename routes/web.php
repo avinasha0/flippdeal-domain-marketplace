@@ -407,7 +407,7 @@ Route::get('/conversations/{conversation}', function ($conversation, Request $re
     }
     
     // Mark messages as read for the current user
-    $conversation->markAsReadForUser($user->id());
+    $conversation->markAsReadForUser($user->id);
     
     // Reset unread count for this user
     if ($conversation->buyer_id === $user->id) {
