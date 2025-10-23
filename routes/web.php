@@ -464,7 +464,8 @@ Route::get('/offers/create', function () { return view('offers.create'); })->nam
 Route::post('/offers', function () { return redirect()->back()->with('success', 'Offer submitted!'); })->name('offers.store');
 Route::get('/domains/{domain}/bids', function ($domainSlug) { 
     $domain = \App\Models\Domain::where('slug', $domainSlug)->firstOrFail();
-    return view('bids.index', compact('domain')); 
+    $bids = $domain->bids()->with('user')->orderBy('created_at', 'desc')->get();
+    return view('bids.index', compact('domain', 'bids')); 
 })->name('domains.bids.index');
 Route::get('/domains/{domain}/bids/create', function ($domainSlug) { 
     $domain = \App\Models\Domain::where('slug', $domainSlug)->firstOrFail();
