@@ -353,13 +353,17 @@ Route::post('/conversations', function () {
 
 // This route MUST come after the /new route
 Route::get('/conversations/{conversation}', function ($conversation) { 
-    $conversation = \App\Models\Conversation::with(['buyer', 'seller', 'messages.sender'])
+    $conversation = \App\Models\Conversation::with(['buyer', 'seller', 'messages.sender', 'domain'])
         ->findOrFail($conversation);
     
     // Mark messages as read for the current user
     $conversation->markAsReadForUser(auth()->id());
     
-    return view('conversations.show', compact('conversation')); 
+    // Determine the other user in the conversation
+    $currentUserId = auth()->id();
+    $otherUser = $conversation->buyer_id === $currentUserId ? $conversation->seller : $conversation->buyer;
+    
+    return view('conversations.show', compact('conversation', 'otherUser')); 
 })->name('conversations.show');
 
 Route::get('/messages', function () { 
