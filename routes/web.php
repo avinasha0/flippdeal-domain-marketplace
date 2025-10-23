@@ -443,9 +443,7 @@ Route::get('/messages', function () {
     ]); 
 })->name('messages.index');
 
-Route::post('/messages', function () { 
-    return redirect()->back()->with('success', 'Message sent!'); 
-})->name('messages.store');
+Route::post('/messages', [\App\Http\Controllers\MessageController::class, 'store'])->name('messages.store');
 
 // Offers and bids routes - FIXED with proper pagination
 Route::get('/offers', function () { 

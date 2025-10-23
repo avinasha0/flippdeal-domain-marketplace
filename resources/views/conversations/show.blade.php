@@ -150,8 +150,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 message: message
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (data.success) {
                 // Add message to UI
                 addMessageToUI(data.message);
@@ -174,7 +179,9 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to send message. Please try again.');
+            console.error('Error details:', error.message);
+            console.error('Error stack:', error.stack);
+            alert('Failed to send message. Please try again. Error: ' + error.message);
         })
         .finally(() => {
             // Re-enable form
