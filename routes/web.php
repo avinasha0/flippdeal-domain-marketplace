@@ -39,7 +39,7 @@ Route::post('/login', function () {
     return back()->withErrors([
         'email' => 'The provided credentials do not match our records.',
     ])->onlyInput('email');
-})->name('login');
+})->name('login.post');
 
 Route::get('/register', function () {
     return view('auth.register');
@@ -242,7 +242,7 @@ Route::post('/verification/paypal', function () {
     
     return redirect()->route('verification.paypal')->with('success', 'PayPal email has been added and verified successfully!');
 })->name('verification.paypal.submit')->middleware('auth');
-Route::post('/verification/send', [App\Http\Controllers\VerificationController::class, 'sendVerificationEmail'])->name('verification.send');
+Route::post('/verification/send', [App\Http\Controllers\VerificationController::class, 'sendVerificationEmail'])->name('verification.send.custom');
 Route::post('/verification/verify-email', [App\Http\Controllers\VerificationController::class, 'verifyEmail'])->name('verification.verify-email');
 
 // PayPal routes
@@ -276,14 +276,20 @@ Route::get('/conversations', function () {
     ]); 
 })->name('conversations.index');
 
-Route::get('/conversations/{conversation}', function ($conversation) { 
-    return view('conversations.show', compact('conversation')); 
-})->name('conversations.show');
-
-Route::get('/conversations/new', function () { 
+// This route MUST come before the {conversation} route
+Route::get('/conversations/create', function () { 
     $userId = request('user_id');
     return view('conversations.create', compact('userId')); 
 })->name('conversations.new');
+
+Route::post('/conversations', function () { 
+    return redirect()->route('conversations.index')->with('success', 'Message sent successfully!'); 
+})->name('conversations.store');
+
+// This route MUST come after the /new route
+Route::get('/conversations/{conversation}', function ($conversation) { 
+    return view('conversations.show', compact('conversation')); 
+})->name('conversations.show');
 
 Route::get('/messages', function () { 
     $messages = new \Illuminate\Pagination\LengthAwarePaginator(
