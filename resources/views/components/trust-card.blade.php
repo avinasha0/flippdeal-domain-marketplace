@@ -134,7 +134,7 @@ function viewSellerProfile(userId) {
 
 function contactSeller(userId) {
     // This would open a contact/message modal or redirect to messaging
-    window.location.href = `/conversations/new?user_id=${userId}`;
+    window.location.href = `/conversations/create?user_id=${userId}`;
 }
 </script>
 @endif
