@@ -318,6 +318,7 @@ Route::post('/conversations', function () {
     } else {
         // Create new conversation
         $conversation = \App\Models\Conversation::create([
+            'domain_id' => null, // General conversation, not about a specific domain
             'buyer_id' => $sender->id,
             'seller_id' => $recipient->id,
             'subject' => $request->subject,
@@ -330,6 +331,7 @@ Route::post('/conversations', function () {
     // Create the message
     \App\Models\Message::create([
         'conversation_id' => $conversation->id,
+        'domain_id' => null, // General conversation, not about a specific domain
         'sender_id' => $sender->id,
         'receiver_id' => $recipient->id,
         'from_user_id' => $sender->id,
