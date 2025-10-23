@@ -119,9 +119,9 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="text-sm font-medium text-gray-900">
-                                                {{ $bid->bidder->name }}
+                                                {{ $bid->user->name }}
                                             </div>
-                                            @if($bid->bidder_id === auth()->id())
+                                            @if($bid->user_id === auth()->id())
                                                 <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                                     You
                                                 </span>
@@ -172,7 +172,7 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        @if($bid->bidder_id === auth()->id() && $bid->status === 'active')
+                                        @if($bid->user_id === auth()->id() && $bid->status === 'active')
                                             <div class="flex space-x-2">
                                                 <a href="{{ route('bids.edit', $bid) }}" 
                                                    class="text-purple-600 hover:text-purple-900">
