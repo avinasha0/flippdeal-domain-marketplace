@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\RecentActivityController;
+use Illuminate\Http\Request;
 
 // Include auth routes
 require __DIR__.'/auth.php';
@@ -369,16 +370,60 @@ Route::post('/conversations', function () {
 })->name('conversations.store');
 
 // This route MUST come after the /new route
-Route::get('/conversations/{conversation}', function ($conversation) { 
-    $conversation = \App\Models\Conversation::with(['buyer', 'seller', 'messages.sender', 'domain'])
-        ->findOrFail($conversation);
+Route::get('/conversations/{conversation}', function ($conversation, Request $request) { 
+    $user = Auth::user();
+    
+    // If conversation parameter is actually a domain ID (from domain page)
+    if (is_numeric($conversation) && $request->has('domain_id')) {
+        $domainId = $request->get('domain_id');
+        $domain = \App\Models\Domain::findOrFail($domainId);
+        
+        // Check if user is trying to chat with themselves
+        if ($domain->user_id === $user->id) {
+            return redirect()->back()->with('error', 'You cannot start a conversation with yourself.');
+        }
+        
+        // Find or create conversation between current user and domain owner
+        $conversation = \App\Models\Conversation::firstOrCreate(
+            [
+                'seller_id' => $domain->user_id,
+                'buyer_id' => $user->id,
+                'domain_id' => $domain->id
+            ],
+            [
+                'subject' => 'Discussion about ' . $domain->full_domain,
+                'last_message_at' => now()
+            ]
+        );
+    } else {
+        // Regular conversation lookup
+        $conversation = \App\Models\Conversation::with(['buyer', 'seller', 'messages.sender', 'domain'])
+            ->findOrFail($conversation);
+    }
+    
+    // Check if user is part of this conversation
+    if ($conversation->buyer_id !== $user->id && $conversation->seller_id !== $user->id) {
+        abort(403, 'Unauthorized access to conversation.');
+    }
     
     // Mark messages as read for the current user
-    $conversation->markAsReadForUser(auth()->id());
+    $conversation->markAsReadForUser($user->id());
+    
+    // Reset unread count for this user
+    if ($conversation->buyer_id === $user->id) {
+        $conversation->update(['buyer_unread_count' => 0]);
+    } else {
+        $conversation->update(['seller_unread_count' => 0]);
+    }
+    
+    // Also mark all messages in this conversation as read for this user
+    \App\Models\Message::where('conversation_id', $conversation->id)
+        ->where('to_user_id', $user->id)
+        ->where('is_read', false)
+        ->update(['is_read' => true, 'read_at' => now()]);
     
     // Determine the other user in the conversation
-    $currentUserId = auth()->id();
-    $otherUser = $conversation->buyer_id === $currentUserId ? $conversation->seller : $conversation->buyer;
+    $otherUser = $conversation->buyer_id === $user->id ? $conversation->seller : $conversation->buyer;
     
     return view('conversations.show', compact('conversation', 'otherUser')); 
 })->name('conversations.show');
