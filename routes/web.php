@@ -469,7 +469,16 @@ Route::get('/domains/{domain}/bids', function ($domainSlug) {
 })->name('domains.bids.index');
 Route::get('/domains/{domain}/bids/create', function ($domainSlug) { 
     $domain = \App\Models\Domain::where('slug', $domainSlug)->firstOrFail();
-    return view('bids.create', compact('domain')); 
+    $userHighestBid = null;
+    
+    if (auth()->check()) {
+        $userHighestBid = $domain->bids()
+            ->where('user_id', auth()->id())
+            ->where('is_winning', true)
+            ->first();
+    }
+    
+    return view('bids.create', compact('domain', 'userHighestBid')); 
 })->name('domains.bids.create');
 
 // Other routes - FIXED with proper pagination
